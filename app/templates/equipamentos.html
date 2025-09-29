@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipamentos de {{ cliente.nome }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- CABEÇALHO DA PÁGINA -->
+        <div class="page-header">
+            <div class="header-title">
+                <h1>Equipamentos de {{ cliente.nome }}</h1>
+                <p class="subtitle"><a href="{{ url_for('main.listar_clientes') }}">&larr; Voltar para a lista de clientes</a></p>
+            </div>
+            <a href="{{ url_for('main.novo_equipamento', cliente_id=cliente.id) }}" class="action-button" style="background-color: var(--cor-sucesso-botao);">&#43; Adicionar Equipamento</a>
+        </div>
+
+        <!-- CARD COM A TABELA -->
+        <div class="card">
+            {% if equipamentos %}
+            <table class="data-table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Nº de Série</th>
+                        <th style="width: 180px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipamento in equipamentos %}
+                    <tr>
+                        <td>{{ equipamento.tipo }}</td>
+                        <td>{{ equipamento.marca }}</td>
+                        <td>{{ equipamento.modelo }}</td>
+                        <td>{{ equipamento.numero_serie }}</td>
+                        <td class="actions-cell">
+                            <a href="{{ url_for('main.nova_os', equipamento_id=equipamento.id) }}" class="action-button" style="font-size: 0.9em; padding: 8px 12px;">Criar OS</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="text-align: center;">Nenhum equipamento cadastrado para este cliente.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

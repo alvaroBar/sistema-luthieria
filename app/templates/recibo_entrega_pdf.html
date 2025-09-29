@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo de Entrega - OS #{{ recibo.os_id }}</title>
+    <style>
+        @page { size: A4; margin: 1cm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 8.5pt; color: #333; margin: 0; padding: 0; }
+        .recibo { border: 1px solid #ccc; padding: 12px; margin-bottom: 0.5cm; page-break-inside: avoid; }
+        .recibo-header { text-align: center; margin-bottom: 8px; }
+        .recibo-header img { max-width: 100px; height: auto; margin-bottom: 5px; }
+        h1, h2, h3 { color: #000; margin: 0; padding: 0; }
+        h1 { font-size: 13pt; }
+        h2 { font-size: 10pt; margin-top: 8px; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 6px; }
+        h3 { font-size: 9pt; margin-top: 4px; }
+        p { line-height: 1.3; margin: 0 0 4px 0; }
+        .recibo-header p { font-size: 8pt; }
+        .declaracao { margin-top: 12px; font-style: italic; font-size: 8pt; text-align: justify; }
+        .assinaturas { margin-top: 20px; display: flex; justify-content: space-around; gap: 1cm; }
+        .assinatura-bloco { width: 45%; text-align: center; }
+        .assinatura-linha { border-top: 1px solid #555; padding-top: 2px; font-size: 7.5pt; }
+        .corte { border-top: 1px dashed #999; text-align: center; color: #999; margin: 0.5cm 0; font-size: 8pt; }
+    </style>
+</head>
+<body>
+    <!-- PRIMEIRA VIA - CLIENTE -->
+    <div class="recibo">
+        <div class="recibo-header">
+            {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="Logo da Oficina">{% endif %}
+            <h1>{{ luthier.nome }}</h1>
+            <p>{{ luthier.documento }} | {{ luthier.telefone }}</p>
+            <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via do Cliente)</h3>
+        </div>
+
+        <h2>Dados do Cliente</h2>
+        <p><strong>Nome:</strong> {{ recibo.cliente_nome }}<br>
+           <strong>Contato:</strong> {{ recibo.celular_whatsapp }}</p>
+
+        <h2>Equipamento Retirado</h2>
+        <p><strong>Tipo:</strong> {{ recibo.equipamento_tipo }}<br>
+           <strong>Marca:</strong> {{ recibo.equipamento_marca }}<br>
+           <strong>Modelo:</strong> {{ recibo.equipamento_modelo or 'N/A' }}<br>
+           <strong>Série:</strong> {{ recibo.equipamento_serie or 'N/A' }}</p>
+
+        <p class="declaracao">
+            Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+        </p>
+
+        <div class="assinaturas">
+            <div class="assinatura-bloco">
+                <p class="assinatura-linha">{{ recibo.cliente_nome }}</p>
+            </div>
+            <div class="assinatura-bloco">
+                <p class="assinatura-linha">{{ luthier.nome }}</p>
+            </div>
+        </div>
+    </div>
+
+    <p class="corte">-- &lt; corte aqui &gt; --</p>
+
+    <!-- SEGUNDA VIA - OFICINA -->
+    <div class="recibo">
+         <div class="recibo-header">
+            {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="Logo da Oficina">{% endif %}
+            <h1>{{ luthier.nome }}</h1>
+            <p>{{ luthier.documento }} | {{ luthier.telefone }}</p>
+            <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via da Oficina)</h3>
+        </div>
+
+        <h2>Dados do Cliente</h2>
+        <p><strong>Nome:</strong> {{ recibo.cliente_nome }}<br>
+           <strong>Contato:</strong> {{ recibo.celular_whatsapp }}</p>
+
+        <h2>Equipamento Retirado</h2>
+        <p><strong>Tipo:</strong> {{ recibo.equipamento_tipo }}<br>
+           <strong>Marca:</strong> {{ recibo.equipamento_marca }}<br>
+           <strong>Modelo:</strong> {{ recibo.equipamento_modelo or 'N/A' }}<br>
+           <strong>Série:</strong> {{ recibo.equipamento_serie or 'N/A' }}</p>
+
+        <p class="declaracao">
+            Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+        </p>
+
+        <div class="assinaturas">
+            <div class="assinatura-bloco">
+                <p class="assinatura-linha">{{ recibo.cliente_nome }}</p>
+            </div>
+            <div class="assinatura-bloco">
+                <p class="assinatura-linha">{{ luthier.nome }}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

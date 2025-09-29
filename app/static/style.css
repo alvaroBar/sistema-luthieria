@@ -1,0 +1,153 @@
+/* --- 1. IMPORTAÇÃO DAS NOVAS FONTES DO GOOGLE FONTS --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700&display=swap');
+
+/* --- DEFINIÇÃO DAS VARIÁVEIS DE CORES E ESTILOS --- */
+:root {
+    --fonte-titulo: 'Montserrat', sans-serif;
+    --fonte-corpo: 'Inter', sans-serif;
+    --cor-fundo: #f0f2f5;
+    --cor-fundo-card: #ffffff;
+    --cor-texto-primario: #1d2d35;
+    --cor-texto-secundario: #6b7280;
+    --cor-borda: #e5e7eb;
+    --cor-linha-divisoria: #e5e7eb;
+    --cor-fundo-header-tabela: #f9fafb;
+    --cor-primaria-botao: #2563eb;
+    --cor-sucesso-botao: #16a34a;
+    --cor-perigo-botao: #dc2626;
+    --cor-secundaria-botao: #4b5563;
+    --cor-texto-botao: #ffffff;
+    --cor-fundo-botao-add-claro: #dcfce7;
+    --cor-texto-botao-add-claro: #166534;
+    --cor-total-fundo: #e9ecef; --cor-pago-fundo: #d4edda; --cor-devedor-fundo: #f8d7da;
+    --cor-texto-financeiro: #333;
+    --raio-borda-card: 10px;
+    --sombra-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --sombra-card-hover: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --linha-status-aguardando-orcamento: #facc15;
+    --linha-status-aguardando-aprovacao-do-cliente: #fb923c;
+    --linha-status-aprovado-em-andamento: #2563eb;
+    --linha-status-finalizado-aguardando-retirada: #16a34a;
+    --linha-status-entregue: #6f42c1;
+    --linha-status-cancelado: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --cor-fundo: #0c111d; --cor-fundo-card: #192231; --cor-texto-primario: #e5e7eb;
+        --cor-texto-secundario: #9ca3af; --cor-borda: #374151; --cor-linha-divisoria: #374151;
+        --cor-fundo-header-tabela: #111827; --cor-primaria-botao: #3b82f6; --cor-sucesso-botao: #22c55e;
+        --cor-perigo-botao: #ef4444; --cor-secundaria-botao: #6b7280; --cor-texto-botao: #ffffff;
+        --cor-fundo-botao-add-claro: #22c55e; --cor-texto-botao-add-claro: #ffffff;
+        --cor-total-fundo: #374151; --cor-pago-fundo: #166534; --cor-devedor-fundo: #991b1b;
+        --cor-texto-financeiro: #f9fafb; --sombra-card: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.15);
+        --sombra-card-hover: 0 8px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+        --linha-status-aguardando-orcamento: #facc15;
+        --linha-status-aguardando-aprovacao-do-cliente: #fb923c;
+        --linha-status-aprovado-em-andamento: #3b82f6;
+        --linha-status-finalizado-aguardando-retirada: #22c55e;
+        --linha-status-entregue: #8b5cf6;
+        --linha-status-cancelado: #ef4444;
+    }
+}
+
+/* --- ESTILOS GERAIS --- */
+body { font-family: var(--fonte-corpo); background-color: var(--cor-fundo); color: var(--cor-texto-primario); margin: 0; transition: background-color 0.3s ease, color 0.3s ease; }
+.container { max-width: 900px; margin: auto; padding: 20px; }
+h1, h2, h3 { font-family: var(--fonte-titulo); color: var(--cor-texto-primario); font-weight: 700; }
+a { color: var(--cor-primaria-botao); text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; height: 1px; background-color: var(--cor-linha-divisoria); margin: 20px 0; }
+.card, .nav-panel { background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda-card); padding: 24px; margin-bottom: 24px; box-shadow: var(--sombra-card); transition: all 0.2s ease-in-out; }
+form { margin-top: 20px; }
+input, select, textarea { padding: 12px; font-size: 1em; border: 1px solid var(--cor-borda); border-radius: 8px; background-color: var(--cor-fundo); color: var(--cor-texto-primario); width: calc(100% - 26px); font-family: var(--fonte-corpo); }
+button, .action-button, .pdf-button, .button--secondary { padding: 12px 18px; color: var(--cor-texto-botao); border: none; cursor: pointer; border-radius: 8px; font-size: 1em; text-decoration: none; text-align: center; transition: opacity 0.2s; font-family: var(--fonte-titulo); font-weight: 700; }
+button:hover, .action-button:hover, .pdf-button:hover, .button--secondary:hover { text-decoration: none; opacity: 0.9; }
+.button--primary { background-color: var(--cor-primaria-botao); }
+.button--secondary { background-color: var(--cor-secundaria-botao); }
+button[type="submit"] { background-color: var(--cor-sucesso-botao); }
+.action-button { background-color: var(--cor-primaria-botao); }
+.pdf-button { background-color: var(--cor-secundaria-botao); }
+.delete-form { display: inline-block; margin: 0; padding: 0; }
+form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !important; }
+
+/* --- CABEÇALHO PRINCIPAL --- */
+.main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--cor-linha-divisoria); }
+.header-title h1 { margin: 0; font-size: 1.8em; }
+.header-title .subtitle { margin: 0; color: var(--cor-texto-secundario); font-family: var(--fonte-corpo); font-size: 0.9em; }
+.header-logo img { max-width: 180px; height: auto; display: block; }
+
+/* --- CABEÇALHO DE PÁGINA E BUSCA --- */
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--cor-linha-divisoria); }
+.page-header h1 { margin: 0; }
+.page-header .subtitle { margin: 0; color: var(--cor-texto-secundario); font-family: var(--fonte-corpo); }
+.search-form { display: flex; gap: 10px; margin-bottom: 24px; }
+.search-form input { flex-grow: 1; }
+
+/* --- TABELAS DE DADOS --- */
+.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+.data-table th, .data-table td { padding: 12px 15px; text-align: left; }
+.data-table th { background-color: var(--cor-fundo-header-tabela); font-family: var(--fonte-titulo); font-weight: 600; border-bottom: 2px solid var(--cor-linha-divisoria); }
+.data-table td { border-bottom: 1px solid var(--cor-linha-divisoria); }
+.data-table.table-hover tbody tr:hover { background-color: var(--cor-fundo); }
+.data-table a { font-weight: 600; }
+.data-table th:nth-child(1) { width: 45%; }
+.data-table th:nth-child(2) { width: 25%; }
+.data-table th:nth-child(3) { width: 30%; text-align: right; }
+.actions-cell { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.action-link { padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9em; background-color: transparent; color: var(--cor-texto-secundario); border: 1px solid transparent; transition: all 0.2s ease-in-out; }
+.action-link:hover { text-decoration: none; }
+.action-link--equipamentos:hover { background-color: #dcfce7; color: #166534; transform: scale(1.1); }
+.action-link--edit { padding: 6px; } /* Resetando padding caso necessário */
+.action-link--edit:hover { background-color: #e0e7ff; color: var(--cor-primaria-botao); transform: scale(1.1); }
+button.action-link--delete { background-color: transparent; color: var(--cor-texto-secundario); border: none; cursor: pointer; transition: all 0.2s ease-in-out; }
+button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-perigo-botao); transform: scale(1.1); }
+
+/* --- PAINEL DE NAVEGAÇÃO (DASHBOARD) --- */
+.nav-panel h2 { margin-top: 0; border-bottom: 1px solid var(--cor-linha-divisoria); padding-bottom: 10px; }
+.nav-grid { display: flex; gap: 15px; flex-wrap: wrap; }
+.nav-card { flex-grow: 1; padding: 20px; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda-card); text-align: center; text-decoration: none; color: var(--cor-texto-primario); font-weight: bold; transition: all 0.2s ease-in-out; }
+.nav-card:hover { transform: translateY(-3px); box-shadow: var(--sombra-card-hover); border-color: var(--cor-primaria-botao); text-decoration: none; }
+.nav-card--add { background-color: var(--cor-fundo-botao-add-claro); color: var(--cor-texto-botao-add-claro); }
+
+/* --- CARDS DO FEED DE ATIVIDADES --- */
+.card-link { text-decoration: none; color: inherit; }
+.card-link:hover { text-decoration: none; }
+.os-card { display: block; position: relative; overflow: hidden; }
+.os-card:hover { transform: translateY(-5px); box-shadow: var(--sombra-card-hover); }
+.os-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: var(--cor-borda); }
+.status-aguardando-orçamento::before { background-color: var(--linha-status-aguardando-orcamento); }
+.status-aguardando-aprovação-do-cliente::before { background-color: var(--linha-status-aguardando-aprovacao-do-cliente); }
+.status-aprovado---em-andamento::before { background-color: var(--linha-status-aprovado-em-andamento); }
+.status-finalizado---aguardando-retirada::before { background-color: var(--linha-status-finalizado-aguardando-retirada); }
+.status-entregue::before { background-color: var(--linha-status-entregue); }
+.status-cancelado::before { background-color: var(--linha-status-cancelado); }
+.os-header { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; margin-bottom: 16px; }
+.os-header h2 { margin: 0; font-size: 1.25em; font-weight: 700; }
+.os-status { padding: 5px 12px; border-radius: 999px; font-size: 0.8em; font-weight: 600; text-align: center; font-family: var(--fonte-titulo); }
+.os-body { padding: 0; margin: 0; border: none; }
+.os-body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.info-item .label { display: block; font-size: 0.8em; color: var(--cor-texto-secundario); margin-bottom: 4px; }
+.info-item .data { font-size: 1em; font-weight: 500; color: var(--cor-texto-primario); }
+.info-item-full { margin-top: 16px; }
+.info-item-full .label { display: block; font-size: 0.8em; color: var(--cor-texto-secundario); margin-bottom: 4px; }
+.info-item-full .data { font-size: 1em; color: var(--cor-texto-primario); }
+.os-status.status-aguardando-orçamento { background-color: var(--linha-status-aguardando-orcamento); color: #333; }
+.os-status.status-aguardando-aprovação-do-cliente { background-color: var(--linha-status-aguardando-aprovacao-do-cliente); color: #333; }
+.os-status.status-aprovado---em-andamento { background-color: var(--linha-status-aprovado-em-andamento); color: white; }
+.os-status.status-finalizado---aguardando-retirada { background-color: var(--linha-status-finalizado-aguardando-retirada); color: white; }
+.os-status.status-entregue { background-color: var(--linha-status-entregue); color: white; }
+.os-status.status-cancelado { background-color: var(--linha-status-cancelado); color: white; }
+
+/* --- ESTILOS DA PÁGINA DE DETALHES DA OS --- */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.financeiro-resumo { display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; }
+.financeiro-resumo div { padding: 15px; border-radius: 8px; width: 30%; transition: background-color 0.3s ease; }
+.financeiro-resumo strong { font-family: var(--fonte-titulo); display: block; margin-bottom: 5px; font-size: 0.9em; }
+.total-valor { background-color: var(--cor-total-fundo); color: var(--cor-texto-financeiro); }
+.pago-valor { background-color: var(--cor-pago-fundo); color: var(--cor-texto-financeiro); }
+.devedor-valor { background-color: var(--cor-devedor-fundo); color: var(--cor-texto-financeiro); }
+.form-grid { display: grid; grid-template-columns: auto 1fr; gap: 10px 15px; align-items: center; }
+.form-grid label { font-weight: bold; margin: 0; }
+.form-grid .full-width { grid-column: 1 / -1; }
+.form-action-button { width: 100%; padding: 12px; font-size: 1.1em; margin-top: 10px; }
+.action-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }

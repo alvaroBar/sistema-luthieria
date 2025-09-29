@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Ordem de Serviço</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Nova Ordem de Serviço</h1>
+
+    <div class="info-box">
+        <strong>Cliente:</strong> {{ cliente['nome'] }} <br>
+        <strong>Equipamento:</strong> {{ equipamento['tipo'] }} {{ equipamento['marca'] }} - {{ equipamento['modelo'] }}
+    </div>
+
+    <form method="POST">
+        <label for="descricao_problema">Descrição do Problema (Relatado pelo Cliente):</label>
+        <textarea id="descricao_problema" name="descricao_problema" required></textarea>
+
+        <label style="margin-top: 15px;">Acessórios (na entrada):</label>
+        <div class="radio-group">
+            <input type="radio" id="sem_capa" name="acessorios_entrada" value="Sem Capa" checked>
+            <label for="sem_capa">Sem Capa</label>
+
+            <input type="radio" id="com_capa" name="acessorios_entrada" value="Com Capa (Bag)">
+            <label for="com_capa">Com Capa (Bag)</label>
+
+            <input type="radio" id="com_case" name="acessorios_entrada" value="Com Case">
+            <label for="com_case">Com Case</label>
+        </div>
+
+        <label for="data_previsao_saida" style="margin-top: 15px;">Previsão de Entrega:</label>
+        <input type="date" id="data_previsao_saida" name="data_previsao_saida">
+
+        <button type="submit">Abrir Ordem de Serviço</button>
+    </form>
+    <br>
+    <a href="{{ url_for('main.listar_equipamentos', cliente_id=cliente['id']) }}">Cancelar e Voltar</a>
+</body>
+</html>

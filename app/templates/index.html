@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema Luthier</title>
+   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="main-header">
+            <div class="header-title">
+                <h1>Oficina das Cordas</h1>
+                <p class="subtitle">Sistema de Gestão para Luthier</p>
+            </div>
+            <div class="header-logo">
+                <img src="{{ url_for('static', filename='logo_fundo_transparente.png') }}" alt="Logo da Oficina">
+            </div>
+        </div>
+        <div class="nav-panel">
+            <h2>Acesso Rápido</h2>
+            <div class="nav-grid">
+                <a href="{{ url_for('main.listar_clientes') }}" class="nav-card">
+                    Clientes
+                </a>
+                <a href="{{ url_for('main.listar_servicos') }}" class="nav-card">
+                    Catálogo de Serviços
+                </a>
+                <!-- NOVO LINK PARA O ESTOQUE -->
+                <a href="{{ url_for('main.listar_estoque') }}" class="nav-card">
+                    Gerenciar Estoque
+                </a>
+                <a href="{{ url_for('main.novo_cliente') }}" class="nav-card nav-card--add">
+                &#43; Adicionar Novo Cliente
+                </a>
+            </div>
+        </div>
+        <h2>Feed de Atividades (Ordens de Serviço Recentes)</h2>
+        {% for os in ordens_servico %}
+        <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="card os-card card-link status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
+            <div class="os-header">
+                <h2>{{ os.tipo_equipamento }} {{ os.marca_equipamento }} ({{ os.nome_cliente }})</h2>
+                <span class="os-status status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
+                    {{ os.status }}
+                </span>
+            </div>
+            <div class="os-body">
+                <div class="os-body-grid">
+                    <div class="info-item">
+                        <span class="label">OS Nº</span>
+                        <span class="data">{{ os.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Data de Entrada</span>
+                        <span class="data">{{ os.data_entrada }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Acessórios</span>
+                        <span class="data">{{ os.acessorios_entrada or 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="info-item-full">
+                    <span class="label">Problema Relatado</span>
+                    <span class="data">{{ os.descricao_problema }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+        {% if not ordens_servico %}
+            <p>Nenhuma ordem de serviço encontrada.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
+

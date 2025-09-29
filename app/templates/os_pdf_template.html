@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordem de Serviço #{{ os.id }}</title>
+    <style>
+        @page { size: A4; margin: 1.5cm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11pt; color: #333; }
+        h1, h2, h3 { color: #000; margin: 0; padding: 0; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header-text h1, .header-text p { margin: 0; }
+        .header-logo img { max-width: 200px; max-height: 80px; }
+        .section { margin-bottom: 20px; }
+        .section h2 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total-section { text-align: right; margin-top: 20px; font-size: 14pt; }
+        .footer { position: fixed; bottom: 1.5cm; width: 100%; text-align: center; font-size: 9pt; color: #777; }
+        .signature-line { border-top: 1px solid #555; margin-top: 60px; padding-top: 5px; width: 60%; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-text">
+            <h1>Ordem de Serviço #{{ os.id }}</h1>
+            <p>Data de Emissão: {{ data_hoje }}</p>
+        </div>
+        <div class="header-logo">
+             {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="Logo da Oficina">{% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Dados do Cliente e Equipamento</h2>
+        <div class="grid">
+            <div>
+                <strong>Cliente:</strong> {{ os.nome_cliente }}<br>
+                <strong>Contato:</strong> {{ cliente_info.celular_whatsapp }}
+            </div>
+            <div>
+                <strong>Equipamento:</strong> {{ os.tipo_equipamento }} {{ os.marca_equipamento }}<br>
+                <strong>Modelo:</strong> {{ equipamento_info.modelo or 'N/A' }}<br>
+                <strong>Nº de Série:</strong> {{ equipamento_info.numero_serie or 'N/A' }}
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Detalhes da Entrada</h2>
+        <p><strong>Data de Entrada:</strong> {{ os.data_entrada }}</p>
+        <p><strong>Acessórios:</strong> {{ os.acessorios_entrada }}</p>
+        <p><strong>Problema Relatado:</strong> {{ os.descricao_problema }}</p>
+    </div>
+
+    <!-- SEÇÃO DE ORÇAMENTO ATUALIZADA -->
+    <div class="section">
+        <h2>Orçamento Detalhado</h2>
+
+        <!-- Tabela de Serviços -->
+        <h3>Serviços</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th style="width: 120px;">Valor (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens_orcamento %}
+                <tr>
+                    <td>{{ item.servico_descricao }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(item.valor_cobrado) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- NOVA Tabela de Produtos -->
+        {% if produtos_orcamento %}
+        <h3 style="margin-top: 15px;">Peças e Produtos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th style="width: 80px;">Qtd.</th>
+                    <th style="width: 120px;">Valor Total (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produto in produtos_orcamento %}
+                <tr>
+                    <td>{{ produto.nome }}</td>
+                    <td style="text-align: center;">{{ produto.quantidade_usada }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(produto.valor_cobrado_unidade * produto.quantidade_usada) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <div class="total-section">
+            <strong>TOTAL ORÇADO: R$ {{ "%.2f"|format(total_orcamento) }}</strong>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div style="text-align: center;">
+            <p class="signature-line">Assinatura do Cliente</p>
+        </div>
+    </div>
+</body>
+</html>
+

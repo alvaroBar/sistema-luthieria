@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Cliente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div class="header-title">
+                <h1>Editar Cliente</h1>
+                <p class="subtitle">Altere os dados de {{ cliente['nome'] }}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="POST">
+                <div class="form-grid">
+                    <label for="nome">Nome Completo:</label>
+                    <input type="text" id="nome" name="nome" value="{{ cliente['nome'] }}" required>
+
+                    <label for="cpf">CPF:</label>
+                    <input type="text" id="cpf" name="cpf" value="{{ cliente['cpf'] }}" required>
+
+                    <label for="celular_whatsapp">Celular (WhatsApp):</label>
+                    <input type="text" id="celular_whatsapp" name="celular_whatsapp" value="{{ cliente['celular_whatsapp'] }}" required>
+
+                    <label for="telefone_recado">Telefone para Recado:</label>
+                    <input type="text" id="telefone_recado" name="telefone_recado" value="{{ cliente['telefone_recado'] }}">
+
+                    <label for="email">E-mail:</label>
+                    <input type="email" id="email" name="email" value="{{ cliente['email'] }}">
+                </div>
+
+                <hr>
+
+                <div class="actions-cell" style="justify-content: flex-end;">
+                    <a href="{{ url_for('main.listar_clientes') }}" class="action-link">Cancelar</a>
+                    <button type="submit" class="button--primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

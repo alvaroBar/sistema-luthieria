@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da OS #{{ os.id }}</title>
+   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Ordem de Serviço #{{ os.id }}</h1>
+            <p class="subtitle"><a href="{{ url_for('main.index') }}">&larr; Voltar para o Dashboard</a></p>
+        </div>
+    </div>
+
+    <!-- Grid com Cliente e Status (sem alterações) -->
+    <div class="grid">
+        <div class="card">
+            <h2>Cliente e Equipamento</h2>
+            <p><strong>Cliente:</strong> {{ os.nome_cliente }}</p>
+            <p><strong>Equipamento:</strong> {{ os.tipo_equipamento }} {{ os.marca_equipamento }}</p>
+            <p><strong>Acessórios na Entrada:</strong> {{ os.acessorios_entrada }}</p>
+        </div>
+        <div class="card">
+            <h2>Status e Ações</h2>
+            <p><strong>Status Atual:</strong> {{ os.status }}</p>
+            <div class="action-group">
+                <form action="{{ url_for('main.atualizar_status', os_id=os.id) }}" method="POST" class="form-inline">
+                    <select name="status" style="flex-grow: 1;">
+                        {% set status_opcoes = ['Aguardando Orçamento', 'Aguardando Aprovação do Cliente', 'Aprovado / Em Andamento', 'Finalizado / Aguardando Retirada', 'Entregue', 'Cancelado'] %}
+                        {% for status_opcao in status_opcoes %}
+                            <option value="{{ status_opcao }}" {% if status_opcao == os.status %}selected{% endif %}>
+                                {{ status_opcao }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="button--primary">Atualizar</button>
+                </form>
+                {% if os.caminho_recibo %}
+                    <a href="{{ url_for('main.servir_recibo', filename=os.caminho_recibo) }}" target="_blank" class="pdf-button" style="background-color: var(--cor-sucesso-botao);">Ver 2ª Via do Recibo</a>
+                {% else %}
+                    <a href="{{ url_for('main.gerar_os_pdf', os_id=os.id) }}" target="_blank" class="pdf-button">Imprimir / Gerar PDF da OS</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD DE ORÇAMENTO (ATUALIZADO) -->
+    <div class="card">
+        <h2>Orçamento</h2>
+
+        <h3 style="margin-top: 0;">Serviços Prestados</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Descrição do Serviço</th>
+                    <th style="width: 150px;">Valor (R$)</th>
+                    <th style="width: 100px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens_orcamento %}
+                <tr>
+                    <td>{{ item.servico_descricao }}</td>
+                    <td>R$ {{ "%.2f"|format(item.valor_cobrado) }}</td>
+                    <td class="actions-cell">
+                        <form class="delete-form" action="{{ url_for('main.excluir_item_orcamento', item_id=item.id) }}" method="POST">
+                            <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este serviço?');" title="Excluir item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                 {% if not itens_orcamento %}
+                <tr><td colspan="3" style="text-align: center;">Nenhum serviço adicionado.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <h3 style="margin-top: 20px;">Peças e Produtos Utilizados</h3>
+        <table class="data-table">
+             <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th style="width: 100px;">Qtd.</th>
+                    <th style="width: 150px;">Valor Unit. (R$)</th>
+                    <th style="width: 100px;">Ações</th>
+                </tr>
+            </thead>
+             <tbody>
+                {% for produto in produtos_orcamento %}
+                <tr>
+                    <td>{{ produto.nome }}</td>
+                    <td>{{ produto.quantidade_usada }}</td>
+                    <td>R$ {{ "%.2f"|format(produto.valor_cobrado_unidade) }}</td>
+                    <td class="actions-cell">
+                        <form class="delete-form" action="{{ url_for('main.excluir_produto_orcamento', item_id=produto.id) }}" method="POST">
+                             <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este produto? A quantidade retornará ao estoque.');" title="Excluir item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not produtos_orcamento %}
+                <tr><td colspan="4" style="text-align: center;">Nenhum produto adicionado.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="total"> TOTAL GERAL: R$ {{ "%.2f"|format(total_orcamento) }} </div>
+        <hr>
+
+        <div class="grid">
+            <form action="{{ url_for('main.add_servico', os_id=os.id) }}" method="POST">
+                <h3>Adicionar Serviço</h3>
+                <div class="form-grid">
+                    <label for="servico_id">Serviço Padrão:</label>
+                    <select name="servico_id" id="servico_id">
+                        {% for servico in catalogo_servicos %}
+                            <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
+                        {% endfor %}
+                    </select>
+                    <label for="valor_cobrado">Valor (R$):</label>
+                    <input type="number" step="0.01" name="valor_cobrado" id="valor_cobrado" placeholder="Opcional">
+                </div>
+                <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+                     <button type="submit">Adicionar Serviço</button>
+                </div>
+            </form>
+
+            <form action="{{ url_for('main.add_produto_orcamento', os_id=os.id) }}" method="POST">
+                <h3>Adicionar Produto do Estoque</h3>
+                <div class="form-grid">
+                     <label for="estoque_item_id">Produto:</label>
+                     <select name="estoque_item_id" id="estoque_item_id">
+                         {% for item in estoque_disponivel %}
+                            <option value="{{ item.id }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
+                         {% endfor %}
+                     </select>
+                     <label for="quantidade_usada">Quantidade:</label>
+                     <input type="number" name="quantidade_usada" id="quantidade_usada" value="1" min="1">
+                </div>
+                 <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+                     <button type="submit">Adicionar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Card Financeiro (sem alterações) -->
+    <div class="card">
+        <h2>Financeiro</h2>
+        <div class="financeiro-resumo">
+            <div class="total-valor"> <strong>Total Orçado</strong><br> <span>R$ {{ "%.2f"|format(total_orcamento) }}</span> </div>
+            <div class="pago-valor"> <strong>Total Pago</strong><br> <span>R$ {{ "%.2f"|format(total_pago) }}</span> </div>
+            <div class="devedor-valor"> <strong>Saldo Devedor</strong><br> <span>R$ {{ "%.2f"|format(total_orcamento - total_pago) }}</span> </div>
+        </div>
+        <hr>
+        <h3>Registrar Novo Pagamento</h3>
+        <form action="{{ url_for('main.add_pagamento', os_id=os.id) }}" method="POST">
+             <div class="form-grid">
+                <label for="valor_pago">Valor Pago (R$):</label>
+                <input type="number" step="0.01" id="valor_pago" name="valor_pago" required>
+                <label for="forma_pagamento">Forma de Pagamento:</label>
+                <select name="forma_pagamento" id="forma_pagamento" required>
+                    <option value="PIX">PIX</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                </select>
+            </div>
+             <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+                 <button type="submit">Registrar Pagamento</button>
+            </div>
+        </form>
+        <h3 style="margin-top: 30px;">Histórico de Pagamentos</h3>
+        <table class="data-table table-hover">
+            <thead> <tr><th>Data</th><th>Forma de Pagamento</th><th>Valor Pago (R$)</th></tr> </thead>
+            <tbody>
+                {% for pagamento in pagamentos %}
+                <tr> <td>{{ pagamento.data_pagamento }}</td> <td>{{ pagamento.forma_pagamento }}</td> <td>R$ {{ "%.2f"|format(pagamento.valor_pago) }}</td> </tr>
+                {% endfor %}
+                {% if not pagamentos %}
+                <tr> <td colspan="3" style="text-align: center;">Nenhum pagamento registrado.</td> </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Script para abrir recibo em nova aba -->
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const reciboGeradoFilename = urlParams.get('recibo_gerado');
+        if (reciboGeradoFilename) {
+            const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
+            window.open(reciboUrl, '_blank');
+            window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
+        }
+    </script>
+</div>
+</body>
+</html>
+
