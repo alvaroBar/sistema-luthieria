@@ -1,0 +1,8 @@
+CLiente
+
+id (Identificador único, numérico, not null)
+CPF (numérico, not null)
+nome (Texto, not null)
+telefone celular_whatsapp (Texto, not null)
+telefone recado (texto, opcional)
+email (Texto, opcional)

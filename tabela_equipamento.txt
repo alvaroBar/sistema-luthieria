@@ -1,0 +1,6 @@
+id (Identificador único)
+cliente_id (O número que conecta este equipamento ao seu dono, o Cliente)
+tipo (Texto: "Guitarra", "Baixo", "Violão")
+marca (Texto)
+modelo (Texto)
+numero_serie (Texto, opcional)

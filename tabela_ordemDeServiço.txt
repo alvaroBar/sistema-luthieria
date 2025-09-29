@@ -1,0 +1,8 @@
+OrdemDeServico (OS):
+
+id (Identificador único)
+equipamento_id (O número que conecta esta OS ao Equipamento)
+data_entrada (Data, usaremos a data do dia que for lançado)
+data_previsao_saida (Data)
+descricao_problema (Texto longo)
+status (Texto: "Aguardando Orçamento", "Em Andamento", "Finalizado", etc.)
