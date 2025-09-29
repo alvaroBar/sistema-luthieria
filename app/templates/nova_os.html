@@ -23,7 +23,7 @@
                 <strong>Equipamento:</strong> {{ equipamento.tipo }} {{ equipamento.marca }} - {{ equipamento.modelo }}
             </div>
 
-            <form method="POST">
+            <form method="POST" id="nova-os-form">
                 <div class="form-grid">
                     <label for="descricao_problema" class="full-width">Descrição do Problema (Relatado pelo Cliente):</label>
                     <textarea id="descricao_problema" name="descricao_problema" required class="full-width" style="min-height: 100px;"></textarea>
@@ -45,7 +45,7 @@
 
                     <!-- SEÇÃO DE PREVISÃO DE ENTREGA ATUALIZADA -->
                     <label for="prazo_dias">Prazo (em dias):</label>
-                    <input type="number" id="prazo_dias" placeholder="Ex: 7" min="0">
+                    <input type="number" id="prazo_dias" name="prazo_dias" placeholder="Ex: 7" min="0">
 
                     <label for="data_previsao_saida">Ou Data Específica:</label>
                     <input type="date" id="data_previsao_saida" name="data_previsao_saida">
@@ -66,11 +66,12 @@
         .info-box { border: 1px solid var(--cor-borda); }
     </style>
 
-    <!-- SCRIPT PARA CÁLCULO DE DATA -->
+    <!-- SCRIPT PARA CÁLCULO DE DATA E VALIDAÇÃO -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const prazoDiasInput = document.getElementById('prazo_dias');
             const dataPrevisaoInput = document.getElementById('data_previsao_saida');
+            const form = document.getElementById('nova-os-form');
 
             // Função para calcular e definir a data de previsão com base nos dias
             function calcularDataPrevisao() {
@@ -94,9 +95,9 @@
             function calcularDias() {
                 if (dataPrevisaoInput.value) {
                     const hoje = new Date();
-                    hoje.setHours(0, 0, 0, 0); // Zera as horas para comparar apenas as datas
+                    hoje.setHours(0, 0, 0, 0);
 
-                    const dataPrevisao = new Date(dataPrevisaoInput.value + 'T00:00:00'); // Garante que a hora seja meia-noite
+                    const dataPrevisao = new Date(dataPrevisaoInput.value + 'T00:00:00');
 
                     if (dataPrevisao >= hoje) {
                         const diferencaEmMs = dataPrevisao.getTime() - hoje.getTime();
@@ -106,15 +107,22 @@
                         prazoDiasInput.value = '';
                     }
                 } else {
-                     prazoDiasInput.value = '';
+                    prazoDiasInput.value = '';
                 }
             }
 
             // Adiciona os "ouvintes" de eventos para sincronizar os campos
             prazoDiasInput.addEventListener('input', calcularDataPrevisao);
             dataPrevisaoInput.addEventListener('input', calcularDias);
+
+            // Validação antes de enviar o formulário
+            form.addEventListener('submit', function(e) {
+                if (!prazoDiasInput.value && !dataPrevisaoInput.value) {
+                    e.preventDefault();
+                    alert("Por favor, informe o prazo em dias ou a data específica antes de abrir a OS.");
+                }
+            });
         });
     </script>
 </body>
 </html>
-

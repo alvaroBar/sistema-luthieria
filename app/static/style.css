@@ -83,8 +83,15 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .search-form { display: flex; gap: 10px; margin-bottom: 24px; }
 .search-form input { flex-grow: 1; }
 
-/* --- TABELAS DE DADOS (PARA PÁGINAS DE LISTAGEM) --- */
-.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+/* --- BANNER DE INFORMAÇÃO --- */
+.info-banner { display: flex; align-items: center; gap: 12px; background-color: transparent; color: var(--cor-texto-secundario); padding: 0; margin-bottom: 24px; border: none; }
+.info-banner p { margin: 0; font-family: var(--fonte-corpo); line-height: 1.6; }
+.info-banner::before { content: '💡'; font-size: 24px; line-height: 1; }
+@media (prefers-color-scheme: dark) { .info-banner { color: var(--cor-texto-secundario); } }
+
+
+/* --- TABELAS DE DADOS --- */
+.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
 .data-table th, .data-table td { padding: 12px 15px; text-align: left; vertical-align: middle; }
 .data-table th { background-color: var(--cor-fundo-header-tabela); font-family: var(--fonte-titulo); font-weight: 600; border-bottom: 2px solid var(--cor-linha-divisoria); }
 .data-table td { border-bottom: 1px solid var(--cor-linha-divisoria); }
@@ -107,7 +114,13 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .nav-card:hover { transform: translateY(-3px); box-shadow: var(--sombra-card-hover); border-color: var(--cor-primaria-botao); text-decoration: none; }
 .nav-card--add { background-color: var(--cor-fundo-botao-add-claro); color: var(--cor-texto-botao-add-claro); }
 
-/* --- CARDS DO FEED DE ATIVIDADES (DASHBOARD) --- */
+/* --- PAINEL DE CHAMADA PARA AÇÃO (CTA) --- */
+.cta-panel { display: flex; justify-content: space-between; align-items: center; background-color: var(--cor-fundo); }
+.cta-panel .subtitle { opacity: 0; max-height: 0; overflow: hidden; margin-top: 0; transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out; }
+.cta-panel:hover .subtitle { opacity: 1; max-height: 2em; margin-top: 4px; }
+.cta-button { background-color: var(--cor-sucesso-botao); font-size: 1.1em; padding: 14px 22px; white-space: nowrap; }
+
+/* --- CARDS DO FEED DE ATIVIDADES --- */
 .card-link { text-decoration: none; color: inherit; }
 .card-link:hover { text-decoration: none; }
 .os-card { display: block; position: relative; overflow: hidden; }
@@ -121,6 +134,8 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .status-cancelado::before { background-color: var(--linha-status-cancelado); }
 .os-header { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; margin-bottom: 16px; }
 .os-header h2 { margin: 0; font-size: 1.25em; font-weight: 700; }
+.os-header .card-title-link { color: inherit; text-decoration: none; }
+.os-header .card-title-link:hover { color: var(--cor-primaria-botao); text-decoration: underline; }
 .os-status { padding: 5px 12px; border-radius: 999px; font-size: 0.8em; font-weight: 600; text-align: center; font-family: var(--fonte-titulo); }
 .os-body { padding: 0; margin: 0; border: none; }
 .os-body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -135,6 +150,13 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .os-status.status-finalizado---aguardando-retirada { background-color: var(--linha-status-finalizado-aguardando-retirada); color: white; }
 .os-status.status-entregue { background-color: var(--linha-status-entregue); color: white; }
 .os-status.status-cancelado { background-color: var(--linha-status-cancelado); color: white; }
+.os-footer { border-top: 1px solid var(--cor-linha-divisoria); padding-top: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; }
+.card-action-button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; font-family: var(--fonte-corpo); font-weight: 600; font-size: 0.9em; border-radius: 8px; border: 1px solid var(--cor-borda); background-color: var(--cor-fundo-card); color: var(--cor-texto-secundario); cursor: pointer; text-decoration: none; transition: all 0.2s ease-in-out; }
+.card-action-button svg { stroke: var(--cor-texto-secundario); transition: all 0.2s ease-in-out; }
+.card-action-button:hover { background-color: var(--cor-fundo); border-color: var(--cor-primaria-botao); color: var(--cor-primaria-botao); text-decoration: none; }
+.card-action-button:hover svg { stroke: var(--cor-primaria-botao); }
+.archive-button:hover { border-color: var(--cor-perigo-botao); color: var(--cor-perigo-botao); }
+.archive-button:hover svg { stroke: var(--cor-perigo-botao); }
 
 /* --- ESTILOS DA PÁGINA DE DETALHES DA OS --- */
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -149,4 +171,34 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .form-grid .full-width { grid-column: 1 / -1; }
 .form-action-button { width: 100%; padding: 12px; font-size: 1.1em; margin-top: 10px; }
 .action-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+
+/* --- ESTILOS DO POP-UP (MODAL) --- */
+.card-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-header-actions h2 { margin: 0; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; justify-content: center; align-items: center; }
+.modal.is-active { display: flex; }
+.modal-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); }
+.modal-content { position: relative; z-index: 1001; width: 90%; max-width: 600px; }
+.close-button { background: none; border: none; font-size: 2.5em; font-weight: 300; color: var(--cor-texto-secundario); cursor: pointer; line-height: 1; padding: 0; }
+.close-button:hover { color: var(--cor-texto-primario); }
+
+
+
+
+
+
+
+
+
+/* --- ÍCONE DE GUITARRA --- */
+.action-link--equipamentos i {
+    font-size: 18px;
+    color: var(--cor-texto-secundario);
+    transition: all 0.2s ease-in-out;
+}
+.action-link--equipamentos:hover i {
+    color: #166534;
+    transform: scale(1.2) rotate(-10deg);
+}
+
 

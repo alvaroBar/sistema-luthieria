@@ -10,33 +10,14 @@ import db
 main_routes = Blueprint('main', __name__)
 
 
-# --- FUNÇÃO DE AJUDA PARA O RECIBO (ATUALIZADA) ---
+# --- FUNÇÃO DE AJUDA PARA O RECIBO ---
 def gerar_e_salvar_recibo(os_id):
-    """Gera o PDF do recibo, salva em disco e atualiza o banco de dados."""
     conn = db.get_db_connection()
-
-    # Consulta SQL explícita para evitar conflitos de nome
-    query = """
-        SELECT 
-            os.id as os_id,
-            cl.nome as cliente_nome,
-            cl.celular_whatsapp,
-            cl.cpf as cliente_cpf,
-            eq.tipo as equipamento_tipo,
-            eq.marca as equipamento_marca,
-            eq.modelo as equipamento_modelo,
-            eq.numero_serie as equipamento_serie
-        FROM ordens_servico as os
-        JOIN equipamentos as eq ON os.equipamento_id = eq.id
-        JOIN clientes as cl ON eq.cliente_id = cl.id
-        WHERE os.id = ?
-    """
-    dados_recibo = conn.execute(query, (os_id,)).fetchone()
-
-    if not dados_recibo:
+    query = "SELECT os.*, eq.*, cl.* FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ?"
+    dados_os = conn.execute(query, (os_id,)).fetchone()
+    if not dados_os:
         conn.close()
         return None
-
     luthier_info = {
         "nome": current_app.config['LUTHIER_NOME'], "documento": current_app.config['LUTHIER_DOCUMENTO'],
         "telefone": current_app.config['LUTHIER_TELEFONE'], "endereco": current_app.config['LUTHIER_ENDERECO']
@@ -48,34 +29,81 @@ def gerar_e_salvar_recibo(os_id):
         logo_data_uri = f'data:image/png;base64,{encoded_string}'
     except FileNotFoundError:
         logo_data_uri = None
-
-    # Passa os dados de forma mais organizada para o template
-    html_renderizado = render_template('recibo_entrega_pdf.html',
-                                       recibo=dados_recibo,
-                                       luthier=luthier_info,
-                                       data_entrega=date.today().strftime('%d/%m/%Y'),
+    html_renderizado = render_template('recibo_entrega_pdf.html', os=dados_os, cliente=dados_os, equipamento=dados_os,
+                                       luthier=luthier_info, data_entrega=date.today().strftime('%d/%m/%Y'),
                                        logo_data_uri=logo_data_uri)
-
     pdf = HTML(string=html_renderizado).write_pdf()
     nome_arquivo = f"recibo_os_{os_id}.pdf"
     caminho_completo = os.path.join(current_app.config['RECIBOS_FOLDER'], nome_arquivo)
     with open(caminho_completo, 'wb') as f:
         f.write(pdf)
-
     conn.execute('UPDATE ordens_servico SET caminho_recibo = ? WHERE id = ?', (nome_arquivo, os_id))
     conn.commit()
     conn.close()
     return nome_arquivo
 
 
-# --- ROTAS PRINCIPAIS E DASHBOARD ---
+# --- ROTAS PRINCIPAIS E DASHBOARD (ATUALIZADAS) ---
 @main_routes.route('/')
 def index():
     conn = db.get_db_connection()
-    query = "SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id ORDER BY os.id DESC"
+    # ALTERAÇÃO AQUI: A query agora filtra para mostrar apenas as OS não arquivadas (arquivada = 0)
+    query = """
+        SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
+        FROM ordens_servico as os
+        JOIN equipamentos as eq ON os.equipamento_id = eq.id
+        JOIN clientes as cl ON eq.cliente_id = cl.id
+        WHERE os.arquivada = 0
+        ORDER BY os.id DESC
+    """
     ordens_servico = conn.execute(query).fetchall()
     conn.close()
     return render_template('index.html', ordens_servico=ordens_servico)
+
+
+# --- NOVAS ROTAS DE ARQUIVAMENTO ---
+@main_routes.route('/os/<int:os_id>/arquivar', methods=['POST'])
+def arquivar_os(os_id):
+    """Marca uma Ordem de Serviço como arquivada, SE o status permitir."""
+    conn = db.get_db_connection()
+
+    # Busca a OS para verificar o status antes de arquivar
+    os = conn.execute('SELECT status FROM ordens_servico WHERE id = ?', (os_id,)).fetchone()
+
+    # Apenas arquiva se a OS for encontrada e o status for 'Entregue' ou 'Cancelado'
+    if os and (os['status'] == 'Entregue' or os['status'] == 'Cancelado'):
+        conn.execute('UPDATE ordens_servico SET arquivada = 1 WHERE id = ?', (os_id,))
+        conn.commit()
+
+    conn.close()
+    return redirect(url_for('main.index'))
+
+
+@main_routes.route('/arquivadas')
+def listar_arquivadas():
+    """Mostra a página com todas as Ordens de Serviço arquivadas."""
+    conn = db.get_db_connection()
+    query = """
+        SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
+        FROM ordens_servico as os
+        JOIN equipamentos as eq ON os.equipamento_id = eq.id
+        JOIN clientes as cl ON eq.cliente_id = cl.id
+        WHERE os.arquivada = 1
+        ORDER BY os.id DESC
+    """
+    ordens_arquivadas = conn.execute(query).fetchall()
+    conn.close()
+    return render_template('arquivadas.html', ordens_servico=ordens_arquivadas)
+
+
+@main_routes.route('/os/<int:os_id>/desarquivar', methods=['POST'])
+def desarquivar_os(os_id):
+    """Marca uma Ordem de Serviço como não arquivada, trazendo-a de volta para o feed."""
+    conn = db.get_db_connection()
+    conn.execute('UPDATE ordens_servico SET arquivada = 0 WHERE id = ?', (os_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('main.listar_arquivadas'))
 
 
 # --- ROTAS DE GERENCIAMENTO DO CATÁLOGO DE SERVIÇOS ---
@@ -122,10 +150,13 @@ def excluir_servico(servico_id):
     return redirect(url_for('main.listar_servicos'))
 
 
-# --- ROTAS DE CLIENTES E EQUIPAMENTOS ---
+# --- ROTAS DE CLIENTES (COM ATUALIZAÇÃO) ---
 @main_routes.route('/clientes')
 def listar_clientes():
     termo_busca = request.args.get('busca')
+    # Captura o novo parâmetro 'source' da URL
+    source = request.args.get('source')
+
     conn = db.get_db_connection()
     if termo_busca:
         clientes = conn.execute('SELECT * FROM clientes WHERE nome LIKE ? OR cpf LIKE ? ORDER BY nome',
@@ -133,7 +164,9 @@ def listar_clientes():
     else:
         clientes = conn.execute('SELECT * FROM clientes ORDER BY nome').fetchall()
     conn.close()
-    return render_template('clientes.html', clientes=clientes, termo_busca=termo_busca)
+
+    # Passa o novo parâmetro 'source' para o template
+    return render_template('clientes.html', clientes=clientes, termo_busca=termo_busca, source=source)
 
 
 @main_routes.route('/clientes/novo', methods=['GET', 'POST'])
@@ -529,4 +562,21 @@ def excluir_item_estoque(item_id):
     finally:
         conn.close()
     return redirect(url_for('main.listar_estoque'))
+
+
+# --- NOVA ROTA PARA EDITAR INFORMAÇÕES DA OS ---
+@main_routes.route('/os/<int:os_id>/editar_info', methods=['POST'])
+def editar_info_os(os_id):
+    """Atualiza as informações de acessórios e problema de uma OS."""
+    if request.method == 'POST':
+        acessorios = request.form['acessorios_entrada']
+        problema = request.form['descricao_problema']
+
+        conn = db.get_db_connection()
+        conn.execute('UPDATE ordens_servico SET acessorios_entrada = ?, descricao_problema = ? WHERE id = ?',
+                     (acessorios, problema, os_id))
+        conn.commit()
+        conn.close()
+
+    return redirect(url_for('main.detalhe_os', os_id=os_id))
 

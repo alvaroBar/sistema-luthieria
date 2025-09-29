@@ -15,13 +15,20 @@
         </div>
     </div>
 
-    <!-- Grid com Cliente e Status (sem alterações) -->
+    <!-- Grid com Cliente e Status -->
     <div class="grid">
         <div class="card">
-            <h2>Cliente e Equipamento</h2>
+            <!-- Título do Card com o novo botão Editar -->
+            <div class="card-header-actions">
+                <h2>Cliente e Equipamento</h2>
+                <button class="action-link action-link--edit" onclick="openModal('modal-editar-info')" title="Editar Informações">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                </button>
+            </div>
             <p><strong>Cliente:</strong> {{ os.nome_cliente }}</p>
             <p><strong>Equipamento:</strong> {{ os.tipo_equipamento }} {{ os.marca_equipamento }}</p>
             <p><strong>Acessórios na Entrada:</strong> {{ os.acessorios_entrada }}</p>
+            <p><strong>Problema Relatado:</strong> {{ os.descricao_problema }}</p>
         </div>
         <div class="card">
             <h2>Status e Ações</h2>
@@ -47,10 +54,51 @@
         </div>
     </div>
 
-    <!-- CARD DE ORÇAMENTO (ATUALIZADO) -->
+<!-- CARD DE ORÇAMENTO (REORGANIZADO) -->
     <div class="card">
         <h2>Orçamento</h2>
+        <hr>
 
+        <!-- SEÇÃO DE ADICIONAR ITENS (AGORA NO TOPO) -->
+        <div class="grid">
+            <form action="{{ url_for('main.add_servico', os_id=os.id) }}" method="POST">
+                <h3>Adicionar Serviço</h3>
+                <div class="form-grid">
+                    <label for="servico_id">Serviço Padrão:</label>
+                    <select name="servico_id" id="servico_id">
+                        {% for servico in catalogo_servicos %}
+                            <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
+                        {% endfor %}
+                    </select>
+                    <label for="valor_cobrado">Valor (R$):</label>
+                    <input type="number" step="0.01" name="valor_cobrado" id="valor_cobrado" placeholder="Opcional">
+                </div>
+                <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+                     <button type="submit">Adicionar Serviço</button>
+                </div>
+            </form>
+
+            <form action="{{ url_for('main.add_produto_orcamento', os_id=os.id) }}" method="POST">
+                <h3>Adicionar Produto do Estoque</h3>
+                <div class="form-grid">
+                     <label for="estoque_item_id">Produto:</label>
+                     <select name="estoque_item_id" id="estoque_item_id">
+                         {% for item in estoque_disponivel %}
+                            <option value="{{ item.id }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
+                         {% endfor %}
+                     </select>
+                     <label for="quantidade_usada">Quantidade:</label>
+                     <input type="number" name="quantidade_usada" id="quantidade_usada" value="1" min="1">
+                </div>
+                 <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+                     <button type="submit">Adicionar Produto</button>
+                </div>
+            </form>
+        </div>
+
+        <hr>
+
+        <!-- SEÇÃO DAS LISTAS DE ITENS (AGORA EMBAIXO) -->
         <h3 style="margin-top: 0;">Serviços Prestados</h3>
         <table class="data-table">
             <thead>
@@ -112,46 +160,9 @@
         </table>
 
         <div class="total"> TOTAL GERAL: R$ {{ "%.2f"|format(total_orcamento) }} </div>
-        <hr>
-
-        <div class="grid">
-            <form action="{{ url_for('main.add_servico', os_id=os.id) }}" method="POST">
-                <h3>Adicionar Serviço</h3>
-                <div class="form-grid">
-                    <label for="servico_id">Serviço Padrão:</label>
-                    <select name="servico_id" id="servico_id">
-                        {% for servico in catalogo_servicos %}
-                            <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
-                        {% endfor %}
-                    </select>
-                    <label for="valor_cobrado">Valor (R$):</label>
-                    <input type="number" step="0.01" name="valor_cobrado" id="valor_cobrado" placeholder="Opcional">
-                </div>
-                <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
-                     <button type="submit">Adicionar Serviço</button>
-                </div>
-            </form>
-
-            <form action="{{ url_for('main.add_produto_orcamento', os_id=os.id) }}" method="POST">
-                <h3>Adicionar Produto do Estoque</h3>
-                <div class="form-grid">
-                     <label for="estoque_item_id">Produto:</label>
-                     <select name="estoque_item_id" id="estoque_item_id">
-                         {% for item in estoque_disponivel %}
-                            <option value="{{ item.id }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
-                         {% endfor %}
-                     </select>
-                     <label for="quantidade_usada">Quantidade:</label>
-                     <input type="number" name="quantidade_usada" id="quantidade_usada" value="1" min="1">
-                </div>
-                 <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
-                     <button type="submit">Adicionar Produto</button>
-                </div>
-            </form>
-        </div>
     </div>
 
-    <!-- Card Financeiro (sem alterações) -->
+    <!-- Card Financeiro -->
     <div class="card">
         <h2>Financeiro</h2>
         <div class="financeiro-resumo">
@@ -191,17 +202,51 @@
         </table>
     </div>
 
-    <!-- Script para abrir recibo em nova aba -->
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const reciboGeradoFilename = urlParams.get('recibo_gerado');
-        if (reciboGeradoFilename) {
-            const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
-            window.open(reciboUrl, '_blank');
-            window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
-        }
-    </script>
 </div>
+
+<!-- ESTRUTURA DO POP-UP (MODAL) -->
+<div id="modal-editar-info" class="modal">
+    <div class="modal-background" onclick="closeModal('modal-editar-info')"></div>
+    <div class="modal-content card">
+        <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+            <h2>Editar Informações da OS #{{ os.id }}</h2>
+            <button class="close-button" onclick="closeModal('modal-editar-info')">&times;</button>
+        </div>
+        <form action="{{ url_for('main.editar_info_os', os_id=os.id) }}" method="POST">
+            <div class="form-grid">
+                <label for="acessorios_entrada" class="full-width">Acessórios na Entrada:</label>
+                <input type="text" id="acessorios_entrada" name="acessorios_entrada" value="{{ os.acessorios_entrada }}" class="full-width">
+
+                <label for="descricao_problema" class="full-width">Problema Relatado:</label>
+                <textarea id="descricao_problema" name="descricao_problema" class="full-width" style="min-height: 120px;">{{ os.descricao_problema }}</textarea>
+            </div>
+            <hr>
+            <div class="actions-cell">
+                <button type="button" class="button--secondary" onclick="closeModal('modal-editar-info')">Cancelar</button>
+                <button type="submit" class="button--primary">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SCRIPT PARA CONTROLAR O POP-UP E O RECIBO -->
+<script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('is-active');
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('is-active');
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const reciboGeradoFilename = urlParams.get('recibo_gerado');
+    if (reciboGeradoFilename) {
+        const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
+        window.open(reciboUrl, '_blank');
+        window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
+    }
+</script>
+
 </body>
 </html>
 
