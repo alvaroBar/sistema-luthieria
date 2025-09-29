@@ -83,21 +83,19 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .search-form { display: flex; gap: 10px; margin-bottom: 24px; }
 .search-form input { flex-grow: 1; }
 
-/* --- TABELAS DE DADOS --- */
+/* --- TABELAS DE DADOS (PARA PÁGINAS DE LISTAGEM) --- */
 .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
-.data-table th, .data-table td { padding: 12px 15px; text-align: left; }
+.data-table th, .data-table td { padding: 12px 15px; text-align: left; vertical-align: middle; }
 .data-table th { background-color: var(--cor-fundo-header-tabela); font-family: var(--fonte-titulo); font-weight: 600; border-bottom: 2px solid var(--cor-linha-divisoria); }
 .data-table td { border-bottom: 1px solid var(--cor-linha-divisoria); }
 .data-table.table-hover tbody tr:hover { background-color: var(--cor-fundo); }
 .data-table a { font-weight: 600; }
-.data-table th:nth-child(1) { width: 45%; }
-.data-table th:nth-child(2) { width: 25%; }
-.data-table th:nth-child(3) { width: 30%; text-align: right; }
+.data-table th.actions-column { width: 180px; text-align: right; }
 .actions-cell { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
 .action-link { padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9em; background-color: transparent; color: var(--cor-texto-secundario); border: 1px solid transparent; transition: all 0.2s ease-in-out; }
 .action-link:hover { text-decoration: none; }
 .action-link--equipamentos:hover { background-color: #dcfce7; color: #166534; transform: scale(1.1); }
-.action-link--edit { padding: 6px; } /* Resetando padding caso necessário */
+.action-link--edit { padding: 6px; }
 .action-link--edit:hover { background-color: #e0e7ff; color: var(--cor-primaria-botao); transform: scale(1.1); }
 button.action-link--delete { background-color: transparent; color: var(--cor-texto-secundario); border: none; cursor: pointer; transition: all 0.2s ease-in-out; }
 button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-perigo-botao); transform: scale(1.1); }
@@ -109,7 +107,7 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .nav-card:hover { transform: translateY(-3px); box-shadow: var(--sombra-card-hover); border-color: var(--cor-primaria-botao); text-decoration: none; }
 .nav-card--add { background-color: var(--cor-fundo-botao-add-claro); color: var(--cor-texto-botao-add-claro); }
 
-/* --- CARDS DO FEED DE ATIVIDADES --- */
+/* --- CARDS DO FEED DE ATIVIDADES (DASHBOARD) --- */
 .card-link { text-decoration: none; color: inherit; }
 .card-link:hover { text-decoration: none; }
 .os-card { display: block; position: relative; overflow: hidden; }
@@ -151,3 +149,4 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .form-grid .full-width { grid-column: 1 / -1; }
 .form-action-button { width: 100%; padding: 12px; font-size: 1.1em; margin-top: 10px; }
 .action-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+

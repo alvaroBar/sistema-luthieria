@@ -179,11 +179,12 @@ def excluir_cliente(cliente_id):
     return redirect(url_for('main.listar_clientes'))
 
 
+# --- ROTAS DE EQUIPAMENTOS (ATUALIZADAS) ---
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos')
 def listar_equipamentos(cliente_id):
     conn = db.get_db_connection()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
-    equipamentos = conn.execute('SELECT * FROM equipamentos WHERE cliente_id = ?', (cliente_id,)).fetchall()
+    equipamentos = conn.execute('SELECT * FROM equipamentos WHERE cliente_id = ? ORDER BY tipo', (cliente_id,)).fetchall()
     conn.close()
     return render_template('equipamentos.html', cliente=cliente, equipamentos=equipamentos)
 
@@ -192,15 +193,80 @@ def listar_equipamentos(cliente_id):
 def novo_equipamento(cliente_id):
     conn = db.get_db_connection()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
+    conn.close()
+
     if request.method == 'POST':
+        tipo = request.form['tipo']
+        # Se o tipo for "Outro", usa o valor do campo de texto, se não for vazio
+        if tipo == 'Outro':
+            tipo_outro = request.form.get('tipo_outro', '').strip()
+            if tipo_outro:
+                tipo = tipo_outro
+
+        marca = request.form['marca']
+        modelo = request.form['modelo']
+        numero_serie = request.form['numero_serie']
+
+        conn = db.get_db_connection()
         conn.execute('INSERT INTO equipamentos (cliente_id, tipo, marca, modelo, numero_serie) VALUES (?, ?, ?, ?, ?)',
-                     (cliente_id, request.form['tipo'], request.form['marca'], request.form['modelo'],
-                      request.form['numero_serie']))
+                     (cliente_id, tipo, marca, modelo, numero_serie))
         conn.commit()
         conn.close()
         return redirect(url_for('main.listar_equipamentos', cliente_id=cliente_id))
-    conn.close()
+
     return render_template('novo_equipamento.html', cliente=cliente)
+
+
+@main_routes.route('/equipamento/<int:equipamento_id>/editar', methods=['GET', 'POST'])
+def editar_equipamento(equipamento_id):
+    conn = db.get_db_connection()
+    # Pega os dados do equipamento e do cliente de uma vez só
+    query = "SELECT eq.*, cl.nome as nome_cliente, cl.id as cliente_id FROM equipamentos as eq JOIN clientes as cl ON eq.cliente_id = cl.id WHERE eq.id = ?"
+    equipamento = conn.execute(query, (equipamento_id,)).fetchone()
+    conn.close()
+
+    if request.method == 'POST':
+        tipo = request.form['tipo']
+        if tipo == 'Outro':
+            tipo_outro = request.form.get('tipo_outro', '').strip()
+            if tipo_outro:
+                tipo = tipo_outro
+
+        marca = request.form['marca']
+        modelo = request.form['modelo']
+        numero_serie = request.form['numero_serie']
+
+        conn = db.get_db_connection()
+        conn.execute('UPDATE equipamentos SET tipo = ?, marca = ?, modelo = ?, numero_serie = ? WHERE id = ?',
+                     (tipo, marca, modelo, numero_serie, equipamento_id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('main.listar_equipamentos', cliente_id=equipamento['cliente_id']))
+
+    return render_template('editar_equipamento.html', equipamento=equipamento)
+
+
+@main_routes.route('/equipamento/<int:equipamento_id>/excluir', methods=['POST'])
+def excluir_equipamento(equipamento_id):
+    conn = db.get_db_connection()
+    # Primeiro, descobre a qual cliente o equipamento pertence para poder redirecionar de volta
+    equipamento = conn.execute('SELECT cliente_id FROM equipamentos WHERE id = ?', (equipamento_id,)).fetchone()
+    cliente_id = equipamento['cliente_id'] if equipamento else None
+
+    try:
+        # Tenta excluir. O DB irá barrar se houver OS associada.
+        conn.execute('DELETE FROM equipamentos WHERE id = ?', (equipamento_id,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # Falha silenciosamente para proteger os dados.
+        # Em um sistema real, adicionaríamos uma flash message de erro.
+        pass
+    finally:
+        conn.close()
+
+    if cliente_id:
+        return redirect(url_for('main.listar_equipamentos', cliente_id=cliente_id))
+    return redirect(url_for('main.index'))  # Fallback
 
 
 # --- ROTAS DE ORDEM DE SERVIÇO ---
@@ -213,15 +279,29 @@ def nova_os(equipamento_id):
     cliente = {'id': dados_completos['id_cliente'], 'nome': dados_completos['nome_cliente']}
     equipamento = dict(dados_completos)
     conn.close()
+
     if request.method == 'POST':
+        data_entrada = date.today().strftime('%Y-%m-%d')
+        data_previsao_saida = request.form['data_previsao_saida']
+        descricao_problema = request.form['descricao_problema']
+        status = "Aguardando Orçamento"
+
+        # Lógica para combinar os acessórios
+        acessorios_radio = request.form['acessorios_entrada']
+        acessorios_obs = request.form.get('acessorios_obs', '').strip()
+
+        acessorios_finais = acessorios_radio
+        if acessorios_obs:
+            acessorios_finais += f" (Obs: {acessorios_obs})"
+
         conn = db.get_db_connection()
         conn.execute(
             'INSERT INTO ordens_servico (equipamento_id, data_entrada, data_previsao_saida, descricao_problema, status, acessorios_entrada) VALUES (?, ?, ?, ?, ?, ?)',
-            (equipamento_id, date.today().strftime('%Y-%m-%d'), request.form['data_previsao_saida'],
-             request.form['descricao_problema'], 'Aguardando Orçamento', request.form['acessorios_entrada']))
+            (equipamento_id, data_entrada, data_previsao_saida, descricao_problema, status, acessorios_finais))
         conn.commit()
         conn.close()
         return redirect(url_for('main.index'))
+
     return render_template('nova_os.html', cliente=cliente, equipamento=equipamento)
 
 
