@@ -15,10 +15,9 @@
         </div>
     </div>
 
-    <!-- Grid com Cliente e Status -->
+    <!-- Grid com Cliente e Status (sem alterações) -->
     <div class="grid">
         <div class="card">
-            <!-- Título do Card com o novo botão Editar -->
             <div class="card-header-actions">
                 <h2>Cliente e Equipamento</h2>
                 <button class="action-link action-link--edit" onclick="openModal('modal-editar-info')" title="Editar Informações">
@@ -54,12 +53,12 @@
         </div>
     </div>
 
-<!-- CARD DE ORÇAMENTO (REORGANIZADO) -->
-    <div class="card">
+    <!-- CARD DE ORÇAMENTO (ATUALIZADO COM O ID "orcamento") -->
+    <div class="card" id="orcamento">
         <h2>Orçamento</h2>
         <hr>
 
-        <!-- SEÇÃO DE ADICIONAR ITENS (AGORA NO TOPO) -->
+        <!-- SEÇÃO DE ADICIONAR ITENS (NO TOPO) -->
         <div class="grid">
             <form action="{{ url_for('main.add_servico', os_id=os.id) }}" method="POST">
                 <h3>Adicionar Serviço</h3>
@@ -98,7 +97,7 @@
 
         <hr>
 
-        <!-- SEÇÃO DAS LISTAS DE ITENS (AGORA EMBAIXO) -->
+        <!-- SEÇÃO DAS LISTAS DE ITENS (EMBAIXO) -->
         <h3 style="margin-top: 0;">Serviços Prestados</h3>
         <table class="data-table">
             <thead>

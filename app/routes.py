@@ -369,6 +369,8 @@ def detalhe_os(os_id):
                            total_pago=total_pago)
 
 
+# --- ROTAS DO ORÇAMENTO (ATUALIZADAS) ---
+
 @main_routes.route('/os/<int:os_id>/add_servico', methods=['POST'])
 def add_servico(os_id):
     conn = db.get_db_connection()
@@ -377,11 +379,11 @@ def add_servico(os_id):
     servico_catalogo = conn.execute('SELECT * FROM servicos WHERE id = ?', (servico_id,)).fetchone()
     descricao = servico_catalogo['nome']
     valor = float(valor_cobrado_str) if valor_cobrado_str else servico_catalogo['preco_sugerido']
-    conn.execute('INSERT INTO orcamento_itens (ordem_servico_id, servico_descricao, valor_cobrado) VALUES (?, ?, ?)',
-                 (os_id, descricao, valor))
+    conn.execute('INSERT INTO orcamento_itens (ordem_servico_id, servico_descricao, valor_cobrado) VALUES (?, ?, ?)', (os_id, descricao, valor))
     conn.commit()
     conn.close()
-    return redirect(url_for('main.detalhe_os', os_id=os_id))
+    # CORREÇÃO: Adiciona a âncora para manter a posição na página
+    return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
 @main_routes.route('/orcamento/item/<int:item_id>/excluir', methods=['POST'])
@@ -392,7 +394,8 @@ def excluir_item_orcamento(item_id):
     conn.execute('DELETE FROM orcamento_itens WHERE id = ?', (item_id,))
     conn.commit()
     conn.close()
-    return redirect(url_for('main.detalhe_os', os_id=os_id))
+    # CORREÇÃO: Adiciona a âncora
+    return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
 @main_routes.route('/os/<int:os_id>/add_produto', methods=['POST'])
@@ -402,14 +405,14 @@ def add_produto_orcamento(os_id):
     conn = db.get_db_connection()
     item_estoque = conn.execute('SELECT * FROM estoque_itens WHERE id = ?', (estoque_item_id,)).fetchone()
     if item_estoque and quantidade_usada > 0 and item_estoque['quantidade'] >= quantidade_usada:
-        conn.execute(
-            'INSERT INTO orcamento_produtos (ordem_servico_id, estoque_item_id, quantidade_usada, valor_cobrado_unidade) VALUES (?, ?, ?, ?)',
-            (os_id, estoque_item_id, quantidade_usada, item_estoque['preco_venda']))
+        conn.execute('INSERT INTO orcamento_produtos (ordem_servico_id, estoque_item_id, quantidade_usada, valor_cobrado_unidade) VALUES (?, ?, ?, ?)',
+                     (os_id, estoque_item_id, quantidade_usada, item_estoque['preco_venda']))
         nova_quantidade = item_estoque['quantidade'] - quantidade_usada
         conn.execute('UPDATE estoque_itens SET quantidade = ? WHERE id = ?', (nova_quantidade, estoque_item_id))
         conn.commit()
     conn.close()
-    return redirect(url_for('main.detalhe_os', os_id=os_id))
+    # CORREÇÃO: Adiciona a âncora
+    return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
 @main_routes.route('/orcamento/produto/<int:item_id>/excluir', methods=['POST'])
@@ -420,12 +423,12 @@ def excluir_produto_orcamento(item_id):
         os_id = item_orcamento['ordem_servico_id']
         estoque_item_id = item_orcamento['estoque_item_id']
         quantidade_devolvida = item_orcamento['quantidade_usada']
-        conn.execute('UPDATE estoque_itens SET quantidade = quantidade + ? WHERE id = ?',
-                     (quantidade_devolvida, estoque_item_id))
+        conn.execute('UPDATE estoque_itens SET quantidade = quantidade + ? WHERE id = ?', (quantidade_devolvida, estoque_item_id))
         conn.execute('DELETE FROM orcamento_produtos WHERE id = ?', (item_id,))
         conn.commit()
         conn.close()
-        return redirect(url_for('main.detalhe_os', os_id=os_id))
+        # CORREÇÃO: Adiciona a âncora
+        return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
     conn.close()
     return redirect(url_for('main.index'))
 

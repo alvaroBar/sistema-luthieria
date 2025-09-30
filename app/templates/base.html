@@ -1,7 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- O título agora é um bloco que pode ser preenchido por cada página -->
+    <title>{% block title %}Sistema Luthier{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Bloco para que outras páginas possam adicionar seus próprios links no head (ex: Font Awesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    {% block head %}{% endblock %}
 </head>
-</html>
+<body>
+    <header class="global-header">
+        <div class="container header-container">
+            <div class="main-header">
+                <div class="header-title">
+                    <h1>Oficina das Cordas</h1>
+                    <p class="subtitle">Sistema de Gestão para Luthier</p>
+                </div>
+                <div class="header-logo">
+                    <img src="{{ url_for('static', filename='logo_fundo_transparente.png') }}" alt="Logo da Oficina">
+                </div>
+            </div>
+            <nav class="global-nav">
+                <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('main.listar_clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">Clientes</a>
+                <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if 'servico' in request.endpoint %}active{% endif %}">Catálogo</a>
+                <a href="{{ url_for('main.listar_estoque') }}" class="nav-link {% if 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
+                <a href="{{ url_for('main.listar_arquivadas') }}" class="nav-link {% if 'arquivada' in request.endpoint %}active{% endif %}">Arquivados</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Aqui é onde o conteúdo específico de cada página será inserido -->
+        {% block content %}{% endblock %}
+    </main>

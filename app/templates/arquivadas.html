@@ -1,56 +1,50 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serviços Arquivados</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="page-header">
-            <div class="header-title">
-                <h1>Serviços Arquivados</h1>
-                <p class="subtitle"><a href="{{ url_for('main.index') }}">&larr; Voltar para o Dashboard</a></p>
-            </div>
-        </div>
+{% extends "base.html" %}
 
-        <div class="card">
-            <table class="data-table table-hover">
-                <thead>
-                    <tr>
-                        <th>OS Nº</th>
-                        <th>Cliente</th>
-                        <th>Equipamento</th>
-                        <th>Status Final</th>
-                        <th class="actions-column">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for os in ordens_servico %}
-                    <tr>
-                        <td>{{ os.id }}</td>
-                        <td>{{ os.nome_cliente }}</td>
-                        <td>{{ os.tipo_equipamento }} {{ os.marca_equipamento }}</td>
-                        <td>{{ os.status }}</td>
-                        <td class="actions-cell">
-                            <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="action-link" title="Ver Detalhes">
-                                Ver Detalhes
-                            </a>
-                             <form action="{{ url_for('main.desarquivar_os', os_id=os.id) }}" method="POST">
-                                <button type="submit" class="action-link" title="Mover de volta para o feed de atividades">
-                                    Desarquivar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% if not ordens_servico %}
-            <p style="text-align: center;">Nenhuma ordem de serviço arquivada.</p>
-            {% endif %}
+{% block title %}Serviços Arquivados{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Serviços Arquivados</h1>
         </div>
     </div>
-</body>
-</html>
+
+    <div class="card">
+        {% if ordens_servico %}
+        <table class="data-table table-hover">
+            <thead>
+                <tr>
+                    <th>OS Nº</th>
+                    <th>Cliente</th>
+                    <th>Equipamento</th>
+                    <th>Status Final</th>
+                    <th class="actions-column">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for os in ordens_servico %}
+                <tr>
+                    <td>{{ os.id }}</td>
+                    <td>{{ os.nome_cliente }}</td>
+                    <td>{{ os.tipo_equipamento }} {{ os.marca_equipamento }}</td>
+                    <td>{{ os.status }}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="action-link" title="Ver Detalhes">
+                            Ver Detalhes
+                        </a>
+                         <form class="delete-form" action="{{ url_for('main.desarquivar_os', os_id=os.id) }}" method="POST">
+                            <button type="submit" class="action-link" title="Mover de volta para o feed de atividades">
+                                Desarquivar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; padding: 20px;">Nenhuma ordem de serviço arquivada.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+

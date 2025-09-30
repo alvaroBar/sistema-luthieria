@@ -1,55 +1,71 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>Gerenciamento de Estoque</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="page-header">
-            <div class="header-title">
-                <h1>Gerenciamento de Estoque</h1>
-                <p class="subtitle"><a href="{{ url_for('main.index') }}">&larr; Voltar para o Dashboard</a></p>
-            </div>
-            <a href="{{ url_for('main.novo_item_estoque') }}" class="action-button" style="background-color: var(--cor-sucesso-botao);">&#43; Adicionar Item</a>
-        </div>
+{% extends "base.html" %}
 
-        <div class="card">
-            <table class="data-table table-hover">
-                <thead>
-                    <tr>
-                        <th>Nome do Item</th>
-                        <th>Descrição</th>
-                        <th style="width: 120px;">Quantidade</th>
-                        <th style="width: 180px;">Preço Venda (R$)</th>
-                        <th style="width: 150px;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in itens %}
-                    <tr>
-                        <td>{{ item['nome'] }}</td>
-                        <td>{{ item['descricao'] }}</td>
-                        <td>{{ item['quantidade'] }}</td>
-                        <td>R$ {{ "%.2f"|format(item['preco_venda']) }}</td>
-                        <td class="actions-cell">
-                            <a href="{{ url_for('main.editar_item_estoque', item_id=item.id) }}" class="action-link action-link--edit" title="Editar">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                            </a>
-                            <form class="delete-form" action="{{ url_for('main.excluir_item_estoque', item_id=item.id) }}" method="POST">
-                                <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir este item do estoque?');" title="Excluir">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block title %}Gerenciamento de Estoque{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Gerenciamento de Estoque</h1>
         </div>
+        <a href="{{ url_for('main.novo_item_estoque') }}" class="action-button" style="background-color: var(--cor-sucesso-botao);">&#43; Adicionar Item</a>
     </div>
-</body>
-</html>
+
+    <div class="card">
+        {% if itens %}
+        <table class="data-table table-hover">
+            <thead>
+                <tr>
+                    <th>Nome do Item</th>
+                    <th>Descrição</th>
+                    <th style="width: 120px;">Quantidade</th>
+                    <th style="width: 180px;">Preço Venda (R$)</th>
+                    <th class="actions-column" style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.nome }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td>{{ item.quantidade }}</td>
+                    <td>R$ {{ "%.2f"|format(item.preco_venda) }}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('main.editar_item_estoque', item_id=item.id) }}" class="action-link action-link--edit" title="Editar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                        </a>
+                        <form class="delete-form" action="{{ url_for('main.excluir_item_estoque', item_id=item.id) }}" method="POST">
+                            <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir este item do estoque?');" title="Excluir">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <div style="text-align:center; padding: 20px;">
+                <p>Nenhum item encontrado no estoque.</p>
+                <a href="{{ url_for('main.novo_item_estoque') }}" class="action-button move-down hide" style="background-color: var(--cor-sucesso-botao); margin-top: 20px; display: inline-block;">
+                    &#43; Adicionar Primeiro Item
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not itens %}
+    <script>
+        // Animação do botão de adicionar quando a lista está vazia
+        document.addEventListener("DOMContentLoaded", function() {
+            const btnBottom = document.querySelector(".move-down");
+            if(btnBottom){
+                setTimeout(() => {
+                    btnBottom.classList.remove('hide');
+                    btnBottom.classList.add('show');
+                }, 200);
+            }
+        });
+    </script>
+    {% endif %}
+{% endblock %}
 

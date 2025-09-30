@@ -70,11 +70,18 @@ button[type="submit"] { background-color: var(--cor-sucesso-botao); }
 .delete-form { display: inline-block; margin: 0; padding: 0; }
 form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !important; }
 
-/* --- CABEÇALHO PRINCIPAL --- */
-.main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--cor-linha-divisoria); }
+/* --- ESTILOS DO CABEÇALHO GLOBAL --- */
+.global-header { background-color: var(--cor-fundo-card); border-bottom: 1px solid var(--cor-borda); padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: var(--sombra-card); }
+.header-container { padding: 0 !important; max-width: 900px; margin: auto; }
+.main-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; margin-bottom: 0; border-bottom: none; }
 .header-title h1 { margin: 0; font-size: 1.8em; }
 .header-title .subtitle { margin: 0; color: var(--cor-texto-secundario); font-family: var(--fonte-corpo); font-size: 0.9em; }
 .header-logo img { max-width: 180px; height: auto; display: block; }
+.global-nav { display: flex; gap: 16px; }
+.nav-link { padding: 12px 16px; border-radius: 8px 8px 0 0; font-family: var(--fonte-corpo); font-weight: 600; color: var(--cor-texto-secundario); text-decoration: none; border-bottom: 3px solid transparent; transition: all 0.2s ease-in-out; }
+.nav-link:hover { background-color: var(--cor-fundo); color: var(--cor-texto-primario); text-decoration: none; }
+.nav-link.active { color: var(--cor-primaria-botao); border-bottom: 3px solid var(--cor-primaria-botao); }
+main.container { padding-top: 40px; }
 
 /* --- CABEÇALHO DE PÁGINA E BUSCA --- */
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--cor-linha-divisoria); }
@@ -89,7 +96,6 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .info-banner::before { content: '💡'; font-size: 24px; line-height: 1; }
 @media (prefers-color-scheme: dark) { .info-banner { color: var(--cor-texto-secundario); } }
 
-
 /* --- TABELAS DE DADOS --- */
 .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
 .data-table th, .data-table td { padding: 12px 15px; text-align: left; vertical-align: middle; }
@@ -102,6 +108,7 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .action-link { padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9em; background-color: transparent; color: var(--cor-texto-secundario); border: 1px solid transparent; transition: all 0.2s ease-in-out; }
 .action-link:hover { text-decoration: none; }
 .action-link--equipamentos:hover { background-color: #dcfce7; color: #166534; transform: scale(1.1); }
+.action-link--equipamentos i { font-size: 18px; transition: all 0.2s ease-in-out; }
 .action-link--edit { padding: 6px; }
 .action-link--edit:hover { background-color: #e0e7ff; color: var(--cor-primaria-botao); transform: scale(1.1); }
 button.action-link--delete { background-color: transparent; color: var(--cor-texto-secundario); border: none; cursor: pointer; transition: all 0.2s ease-in-out; }
@@ -182,6 +189,19 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .close-button { background: none; border: none; font-size: 2.5em; font-weight: 300; color: var(--cor-texto-secundario); cursor: pointer; line-height: 1; padding: 0; }
 .close-button:hover { color: var(--cor-texto-primario); }
 
+/* --- ANIMAÇÃO DO BOTÃO 'NOVO CLIENTE' --- */
+.move-down {
+    display: inline-block;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+}
+.move-down.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+.move-down.hide {
+    transform: translateY(-30px);
+    opacity: 0;
+}
 
 
 

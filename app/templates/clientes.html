@@ -1,37 +1,16 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Clientes</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% extends "base.html" %}
+
+{% block title %}Lista de Clientes{% endblock %}
+
+{% block head %}
+    <!-- Importação do Font Awesome para o ícone de guitarra -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+{% endblock %}
 
-    <style>
-        /* --- ANIMAÇÃO DO BOTÃO --- */
-        .move-down {
-            display: inline-block;
-            margin-top: 20px;
-            transition: transform 0.6s ease, opacity 0.6s ease;
-        }
-
-        .move-down.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .move-down.hide {
-            transform: translateY(-30px);
-            opacity: 0;
-        }
-    </style>
-</head>
-<body>
-<div class="container">
+{% block content %}
     <div class="page-header">
         <div class="header-title">
             <h1>Clientes Cadastrados</h1>
-            <p class="subtitle"><a href="{{ url_for('main.index') }}">&larr; Voltar para o Dashboard</a></p>
         </div>
         <a id="btn-novo-cliente-top" href="{{ url_for('main.novo_cliente') }}" class="action-button"
            style="background-color: var(--cor-sucesso-botao);">&#43; Cadastrar Novo Cliente</a>
@@ -60,44 +39,44 @@
                     <th class="actions-column">Ações</th>
                 </tr>
             </thead>
-<tbody>
-    {% for cliente in clientes %}
-    <tr class="clickable-row" data-href="{{ url_for('main.listar_equipamentos', cliente_id=cliente.id) }}">
-        <td>{{ cliente.nome }}</td>
-        <td>{{ cliente.celular_whatsapp }}</td>
-        <td class="actions-cell">
-            <a href="{{ url_for('main.listar_equipamentos', cliente_id=cliente.id) }}" class="action-link action-link--equipamentos" title="Ver Equipamentos">
-                <i class="fas fa-guitar"></i>
-            </a>
-            <a href="{{ url_for('main.editar_cliente', cliente_id=cliente.id) }}" class="action-link action-link--edit" title="Editar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                </svg>
-            </a>
-            <form class="delete-form" action="{{ url_for('main.excluir_cliente', cliente_id=cliente.id) }}" method="POST">
-                <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita.');" title="Excluir">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                </button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
-
+            <tbody>
+                {% for cliente in clientes %}
+                <tr class="clickable-row" data-href="{{ url_for('main.listar_equipamentos', cliente_id=cliente.id) }}">
+                    <td>{{ cliente.nome }}</td>
+                    <td>{{ cliente.celular_whatsapp }}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('main.listar_equipamentos', cliente_id=cliente.id) }}" class="action-link action-link--equipamentos" title="Ver Equipamentos">
+                            <i class="fas fa-guitar"></i>
+                        </a>
+                        <a href="{{ url_for('main.editar_cliente', cliente_id=cliente.id) }}" class="action-link action-link--edit" title="Editar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </a>
+                        <form class="delete-form" action="{{ url_for('main.excluir_cliente', cliente_id=cliente.id) }}" method="POST">
+                            <button type="submit" class="action-link action-link--delete" onclick="event.stopPropagation(); return confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita.');" title="Excluir">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
         {% else %}
-        <p style="text-align:center; margin-top: 10px;">Nenhum cliente encontrado.</p>
-        <a id="btn-novo-cliente-bottom" href="{{ url_for('main.novo_cliente') }}" class="action-button move-down hide" style="background-color: var(--cor-sucesso-botao);">
-            &#43; Cadastrar Novo Cliente
-        </a>
+        <div style="text-align:center; padding: 20px;">
+            <p>Nenhum cliente encontrado.</p>
+            <a id="btn-novo-cliente-bottom" href="{{ url_for('main.novo_cliente') }}" class="action-button move-down hide" style="background-color: var(--cor-sucesso-botao); margin-top: 20px; display: inline-block;">
+                &#43; Cadastrar Novo Cliente
+            </a>
+        </div>
         {% endif %}
     </div>
-</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -114,12 +93,14 @@ document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll(".clickable-row").forEach(row => {
         row.addEventListener("click", function(e) {
             // Evita o clique se for nos ícones de ação
-            if(e.target.closest(".action-link") || e.target.closest("form")) return;
+            if(e.target.closest(".actions-cell")) {
+                e.stopPropagation();
+                return;
+            };
             window.location.href = this.dataset.href;
         });
     });
 });
 </script>
+{% endblock %}
 
-</body>
-</html>
