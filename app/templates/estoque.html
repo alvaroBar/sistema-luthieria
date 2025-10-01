@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Gerenciamento de Estoque{% endblock %}
-
 {% block content %}
     <div class="page-header">
         <div class="header-title">
@@ -12,14 +10,15 @@
 
     <div class="card">
         {% if itens %}
-        <table class="data-table table-hover">
+        <!-- ADICIONADA A CLASSE 'data-table--estoque' -->
+        <table class="data-table table-hover data-table--estoque">
             <thead>
                 <tr>
                     <th>Nome do Item</th>
                     <th>Descrição</th>
-                    <th style="width: 120px;">Quantidade</th>
-                    <th style="width: 180px;">Preço Venda (R$)</th>
-                    <th class="actions-column" style="width: 180px;">Ações</th>
+                    <th>Quantidade</th>
+                    <th>Preço Venda (R$)</th>
+                    <th class="actions-column">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -30,7 +29,6 @@
                     <td>{{ item.quantidade }}</td>
                     <td>R$ {{ "%.2f"|format(item.preco_venda) }}</td>
                     <td class="actions-cell">
-                        <!-- NOVO BOTÃO PARA ADICIONAR QUANTIDADE -->
                         <button class="action-link action-link--add" title="Adicionar quantidade ao estoque" onclick="openAddStockModal({{ item.id }}, '{{ item.nome }}')">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
