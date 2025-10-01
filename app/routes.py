@@ -118,11 +118,19 @@ def listar_servicos():
 @main_routes.route('/servicos/novo', methods=['GET', 'POST'])
 def novo_servico():
     if request.method == 'POST':
+        nome = request.form['nome']
+        preco_sugerido = request.form['preco_sugerido']
+
         conn = db.get_db_connection()
-        conn.execute('INSERT INTO servicos (nome, preco_sugerido) VALUES (?, ?)',
-                     (request.form['nome'], request.form['preco_sugerido']))
+        conn.execute('INSERT INTO servicos (nome, preco_sugerido) VALUES (?, ?)', (nome, preco_sugerido))
         conn.commit()
         conn.close()
+
+        # Verifica se o formulário foi enviado a partir de uma OS
+        source_os_id = request.form.get('source_os_id')
+        if source_os_id:
+            return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+
         return redirect(url_for('main.listar_servicos'))
     return render_template('novo_servico.html')
 
@@ -527,11 +535,18 @@ def novo_item_estoque():
         descricao = request.form['descricao']
         quantidade = request.form['quantidade']
         preco_venda = request.form['preco_venda']
+
         conn = db.get_db_connection()
         conn.execute('INSERT INTO estoque_itens (nome, descricao, quantidade, preco_venda) VALUES (?, ?, ?, ?)',
                      (nome, descricao, quantidade, preco_venda))
         conn.commit()
         conn.close()
+
+        # Verifica se o formulário foi enviado a partir de uma OS
+        source_os_id = request.form.get('source_os_id')
+        if source_os_id:
+            return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+
         return redirect(url_for('main.listar_estoque'))
     return render_template('novo_item_estoque.html')
 
@@ -564,6 +579,27 @@ def excluir_item_estoque(item_id):
         pass
     finally:
         conn.close()
+    return redirect(url_for('main.listar_estoque'))
+
+
+# --- NOVA ROTA PARA ADICIONAR QUANTIDADE AO ESTOQUE ---
+@main_routes.route('/estoque/<int:item_id>/add_quantidade', methods=['POST'])
+def add_quantidade_estoque(item_id):
+    """Adiciona uma quantidade especificada a um item do estoque."""
+    if request.method == 'POST':
+        try:
+            # Garante que o valor é um número inteiro positivo
+            quantidade_adicionada = int(request.form['quantidade_adicionada'])
+            if quantidade_adicionada > 0:
+                conn = db.get_db_connection()
+                conn.execute('UPDATE estoque_itens SET quantidade = quantidade + ? WHERE id = ?',
+                             (quantidade_adicionada, item_id))
+                conn.commit()
+                conn.close()
+        except (ValueError, TypeError):
+            # Ignora se o valor não for um número válido
+            pass
+
     return redirect(url_for('main.listar_estoque'))
 
 

@@ -19,7 +19,7 @@
                     <th>Descrição</th>
                     <th style="width: 120px;">Quantidade</th>
                     <th style="width: 180px;">Preço Venda (R$)</th>
-                    <th class="actions-column" style="width: 150px;">Ações</th>
+                    <th class="actions-column" style="width: 180px;">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -30,6 +30,10 @@
                     <td>{{ item.quantidade }}</td>
                     <td>R$ {{ "%.2f"|format(item.preco_venda) }}</td>
                     <td class="actions-cell">
+                        <!-- NOVO BOTÃO PARA ADICIONAR QUANTIDADE -->
+                        <button class="action-link action-link--add" title="Adicionar quantidade ao estoque" onclick="openAddStockModal({{ item.id }}, '{{ item.nome }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
                         <a href="{{ url_for('main.editar_item_estoque', item_id=item.id) }}" class="action-link action-link--edit" title="Editar">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                         </a>
@@ -53,8 +57,50 @@
         {% endif %}
     </div>
 
-    {% if not itens %}
+    <!-- NOVO POP-UP (MODAL) PARA ADICIONAR QUANTIDADE -->
+    <div id="modal-add-estoque" class="modal">
+        <div class="modal-background" onclick="closeModal('modal-add-estoque')"></div>
+        <div class="modal-content card">
+            <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                <h2>Adicionar Quantidade</h2>
+                <button class="close-button" onclick="closeModal('modal-add-estoque')">&times;</button>
+            </div>
+            <form id="form-add-estoque" method="POST">
+                <p>Adicionando ao item: <strong id="modal-item-name"></strong></p>
+                <div class="form-grid">
+                    <label for="quantidade_adicionada">Quantidade a Adicionar:</label>
+                    <input type="number" id="quantidade_adicionada" name="quantidade_adicionada" value="1" min="1" required>
+                </div>
+                <hr>
+                <div class="actions-cell">
+                    <button type="button" class="button--secondary" onclick="closeModal('modal-add-estoque')">Cancelar</button>
+                    <button type="submit" class="button--primary">Confirmar Entrada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT PARA CONTROLAR O NOVO MODAL -->
     <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('is-active');
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('is-active');
+        }
+
+        function openAddStockModal(itemId, itemName) {
+            // Define o nome do item no modal
+            document.getElementById('modal-item-name').textContent = itemName;
+
+            // Define a 'action' do formulário para a rota correta, incluindo o ID do item
+            const form = document.getElementById('form-add-estoque');
+            form.action = `/estoque/${itemId}/add_quantidade`;
+
+            // Abre o modal
+            openModal('modal-add-estoque');
+        }
+
         // Animação do botão de adicionar quando a lista está vazia
         document.addEventListener("DOMContentLoaded", function() {
             const btnBottom = document.querySelector(".move-down");
@@ -66,6 +112,5 @@
             }
         });
     </script>
-    {% endif %}
 {% endblock %}
 

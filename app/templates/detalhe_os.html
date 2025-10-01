@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes da OS #{{ os.id }}</title>
-   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<div class="container">
+{% extends "base.html" %}
+
+{% block title %}Detalhes da OS #{{ os.id }}{% endblock %}
+
+{% block content %}
     <div class="page-header">
         <div class="header-title">
             <h1>Ordem de Serviço #{{ os.id }}</h1>
-            <p class="subtitle"><a href="{{ url_for('main.index') }}">&larr; Voltar para o Dashboard</a></p>
         </div>
     </div>
 
-    <!-- Grid com Cliente e Status (sem alterações) -->
+    <!-- Grid com Cliente e Status -->
     <div class="grid">
         <div class="card">
             <div class="card-header-actions">
@@ -53,21 +47,22 @@
         </div>
     </div>
 
-    <!-- CARD DE ORÇAMENTO (ATUALIZADO COM O ID "orcamento") -->
+    <!-- CARD DE ORÇAMENTO -->
     <div class="card" id="orcamento">
         <h2>Orçamento</h2>
         <hr>
 
-        <!-- SEÇÃO DE ADICIONAR ITENS (NO TOPO) -->
         <div class="grid">
             <form action="{{ url_for('main.add_servico', os_id=os.id) }}" method="POST">
                 <h3>Adicionar Serviço</h3>
                 <div class="form-grid">
                     <label for="servico_id">Serviço Padrão:</label>
                     <select name="servico_id" id="servico_id">
+                        <option value="" disabled selected>-- Selecione um serviço --</option>
                         {% for servico in catalogo_servicos %}
                             <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
                         {% endfor %}
+                        <option value="novo-servico" class="option-new">[ + Adicionar Novo Serviço ao Catálogo ]</option>
                     </select>
                     <label for="valor_cobrado">Valor (R$):</label>
                     <input type="number" step="0.01" name="valor_cobrado" id="valor_cobrado" placeholder="Opcional">
@@ -82,9 +77,11 @@
                 <div class="form-grid">
                      <label for="estoque_item_id">Produto:</label>
                      <select name="estoque_item_id" id="estoque_item_id">
+                         <option value="" disabled selected>-- Selecione um produto --</option>
                          {% for item in estoque_disponivel %}
                             <option value="{{ item.id }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
                          {% endfor %}
+                         <option value="novo-produto" class="option-new">[ + Adicionar Novo Produto ao Estoque ]</option>
                      </select>
                      <label for="quantidade_usada">Quantidade:</label>
                      <input type="number" name="quantidade_usada" id="quantidade_usada" value="1" min="1">
@@ -97,7 +94,6 @@
 
         <hr>
 
-        <!-- SEÇÃO DAS LISTAS DE ITENS (EMBAIXO) -->
         <h3 style="margin-top: 0;">Serviços Prestados</h3>
         <table class="data-table">
             <thead>
@@ -161,7 +157,7 @@
         <div class="total"> TOTAL GERAL: R$ {{ "%.2f"|format(total_orcamento) }} </div>
     </div>
 
-    <!-- Card Financeiro -->
+        <!-- Card Financeiro -->
     <div class="card">
         <h2>Financeiro</h2>
         <div class="financeiro-resumo">
@@ -201,51 +197,124 @@
         </table>
     </div>
 
-</div>
-
-<!-- ESTRUTURA DO POP-UP (MODAL) -->
-<div id="modal-editar-info" class="modal">
-    <div class="modal-background" onclick="closeModal('modal-editar-info')"></div>
-    <div class="modal-content card">
-        <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
-            <h2>Editar Informações da OS #{{ os.id }}</h2>
-            <button class="close-button" onclick="closeModal('modal-editar-info')">&times;</button>
+    <!-- POP-UP PARA EDITAR INFO DA OS -->
+    <div id="modal-editar-info" class="modal">
+        <div class="modal-background" onclick="closeModal('modal-editar-info')"></div>
+        <div class="modal-content card">
+            <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                <h2>Editar Informações da OS #{{ os.id }}</h2>
+                <button class="close-button" onclick="closeModal('modal-editar-info')">&times;</button>
+            </div>
+            <form action="{{ url_for('main.editar_info_os', os_id=os.id) }}" method="POST">
+                <div class="form-grid">
+                    <label for="acessorios_entrada" class="full-width">Acessórios na Entrada:</label>
+                    <input type="text" id="acessorios_entrada" name="acessorios_entrada" value="{{ os.acessorios_entrada }}" class="full-width">
+                    <label for="descricao_problema" class="full-width">Problema Relatado:</label>
+                    <textarea id="descricao_problema" name="descricao_problema" class="full-width" style="min-height: 120px;">{{ os.descricao_problema }}</textarea>
+                </div>
+                <hr>
+                <div class="actions-cell">
+                    <button type="button" class="button--secondary" onclick="closeModal('modal-editar-info')">Cancelar</button>
+                    <button type="submit" class="button--primary">Salvar Alterações</button>
+                </div>
+            </form>
         </div>
-        <form action="{{ url_for('main.editar_info_os', os_id=os.id) }}" method="POST">
-            <div class="form-grid">
-                <label for="acessorios_entrada" class="full-width">Acessórios na Entrada:</label>
-                <input type="text" id="acessorios_entrada" name="acessorios_entrada" value="{{ os.acessorios_entrada }}" class="full-width">
-
-                <label for="descricao_problema" class="full-width">Problema Relatado:</label>
-                <textarea id="descricao_problema" name="descricao_problema" class="full-width" style="min-height: 120px;">{{ os.descricao_problema }}</textarea>
-            </div>
-            <hr>
-            <div class="actions-cell">
-                <button type="button" class="button--secondary" onclick="closeModal('modal-editar-info')">Cancelar</button>
-                <button type="submit" class="button--primary">Salvar Alterações</button>
-            </div>
-        </form>
     </div>
-</div>
 
-<!-- SCRIPT PARA CONTROLAR O POP-UP E O RECIBO -->
-<script>
-    function openModal(modalId) {
-        document.getElementById(modalId).classList.add('is-active');
-    }
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('is-active');
-    }
+    <!-- POP-UP PARA NOVO SERVIÇO -->
+    <div id="modal-novo-servico" class="modal">
+        <div class="modal-background" onclick="closeModal('modal-novo-servico')"></div>
+        <div class="modal-content card">
+            <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                <h2>Cadastrar Novo Serviço no Catálogo</h2>
+                <button class="close-button" onclick="closeModal('modal-novo-servico')">&times;</button>
+            </div>
+            <form action="{{ url_for('main.novo_servico') }}" method="POST">
+                <input type="hidden" name="source_os_id" value="{{ os.id }}">
+                <div class="form-grid">
+                    <label for="nome-servico-modal">Nome do Serviço:</label>
+                    <input type="text" id="nome-servico-modal" name="nome" required>
+                    <label for="preco-servico-modal">Preço Sugerido (R$):</label>
+                    <input type="number" step="0.01" id="preco-servico-modal" name="preco_sugerido" required>
+                </div>
+                <hr>
+                <div class="actions-cell">
+                    <button type="button" class="button--secondary" onclick="closeModal('modal-novo-servico')">Cancelar</button>
+                    <button type="submit">Salvar Serviço</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const reciboGeradoFilename = urlParams.get('recibo_gerado');
-    if (reciboGeradoFilename) {
-        const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
-        window.open(reciboUrl, '_blank');
-        window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
-    }
-</script>
+    <!-- POP-UP PARA NOVO PRODUTO -->
+    <div id="modal-novo-produto" class="modal">
+        <div class="modal-background" onclick="closeModal('modal-novo-produto')"></div>
+        <div class="modal-content card">
+            <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                <h2>Cadastrar Novo Produto no Estoque</h2>
+                <button class="close-button" onclick="closeModal('modal-novo-produto')">&times;</button>
+            </div>
+            <form action="{{ url_for('main.novo_item_estoque') }}" method="POST">
+                <input type="hidden" name="source_os_id" value="{{ os.id }}">
+                <div class="form-grid">
+                    <label for="nome-produto-modal">Nome do Item:</label>
+                    <input type="text" id="nome-produto-modal" name="nome" required>
+                    <label for="desc-produto-modal">Descrição:</label>
+                    <textarea id="desc-produto-modal" name="descricao"></textarea>
+                    <label for="qtd-produto-modal">Quantidade:</label>
+                    <input type="number" id="qtd-produto-modal" name="quantidade" value="1" required>
+                    <label for="preco-produto-modal">Preço de Venda (R$):</label>
+                    <input type="number" step="0.01" id="preco-produto-modal" name="preco_venda" required>
+                </div>
+                <hr>
+                <div class="actions-cell">
+                    <button type="button" class="button--secondary" onclick="closeModal('modal-novo-produto')">Cancelar</button>
+                    <button type="submit">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-</body>
-</html>
+    <!-- SCRIPT ATUALIZADO PARA CONTROLAR OS MODAIS -->
+    <script>
+        // Funções para abrir/fechar modais
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('is-active');
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('is-active');
+        }
+
+        // Lógica para os menus de seleção abrirem os modais
+        document.addEventListener('DOMContentLoaded', function() {
+            const servicoSelect = document.getElementById('servico_id');
+            const produtoSelect = document.getElementById('estoque_item_id');
+
+            servicoSelect.addEventListener('change', function() {
+                if (this.value === 'novo-servico') {
+                    openModal('modal-novo-servico');
+                    // Reseta o select para a opção padrão
+                    this.selectedIndex = 0;
+                }
+            });
+
+            produtoSelect.addEventListener('change', function() {
+                if (this.value === 'novo-produto') {
+                    openModal('modal-novo-produto');
+                    // Reseta o select para a opção padrão
+                    this.selectedIndex = 0;
+                }
+            });
+        });
+
+        // Script antigo para o recibo
+        const urlParams = new URLSearchParams(window.location.search);
+        const reciboGeradoFilename = urlParams.get('recibo_gerado');
+        if (reciboGeradoFilename) {
+            const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
+            window.open(reciboUrl, '_blank');
+            window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
+        }
+    </script>
+{% endblock %}
 
