@@ -10,14 +10,30 @@ import db
 main_routes = Blueprint('main', __name__)
 
 
-# --- FUNÇÃO DE AJUDA PARA O RECIBO ---
+# --- FUNÇÃO DE AJUDA PARA O RECIBO (CORRIGIDA) ---
 def gerar_e_salvar_recibo(os_id):
     conn = db.get_db_connection()
-    query = "SELECT os.*, eq.*, cl.* FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ?"
-    dados_os = conn.execute(query, (os_id,)).fetchone()
-    if not dados_os:
+    query = """
+        SELECT 
+            os.id as os_id,
+            cl.nome as cliente_nome,
+            cl.celular_whatsapp,
+            cl.cpf as cliente_cpf,
+            eq.tipo as equipamento_tipo,
+            eq.marca as equipamento_marca,
+            eq.modelo as equipamento_modelo,
+            eq.numero_serie as equipamento_serie
+        FROM ordens_servico as os
+        JOIN equipamentos as eq ON os.equipamento_id = eq.id
+        JOIN clientes as cl ON eq.cliente_id = cl.id
+        WHERE os.id = ?
+    """
+    dados_recibo = conn.execute(query, (os_id,)).fetchone()
+
+    if not dados_recibo:
         conn.close()
         return None
+
     luthier_info = {
         "nome": current_app.config['LUTHIER_NOME'], "documento": current_app.config['LUTHIER_DOCUMENTO'],
         "telefone": current_app.config['LUTHIER_TELEFONE'], "endereco": current_app.config['LUTHIER_ENDERECO']
@@ -29,14 +45,20 @@ def gerar_e_salvar_recibo(os_id):
         logo_data_uri = f'data:image/png;base64,{encoded_string}'
     except FileNotFoundError:
         logo_data_uri = None
-    html_renderizado = render_template('recibo_entrega_pdf.html', os=dados_os, cliente=dados_os, equipamento=dados_os,
-                                       luthier=luthier_info, data_entrega=date.today().strftime('%d/%m/%Y'),
+
+    # CORREÇÃO AQUI: Passa a variável 'recibo' para o template
+    html_renderizado = render_template('recibo_entrega_pdf.html',
+                                       recibo=dados_recibo,
+                                       luthier=luthier_info,
+                                       data_entrega=date.today().strftime('%d/%m/%Y'),
                                        logo_data_uri=logo_data_uri)
+
     pdf = HTML(string=html_renderizado).write_pdf()
     nome_arquivo = f"recibo_os_{os_id}.pdf"
     caminho_completo = os.path.join(current_app.config['RECIBOS_FOLDER'], nome_arquivo)
     with open(caminho_completo, 'wb') as f:
         f.write(pdf)
+
     conn.execute('UPDATE ordens_servico SET caminho_recibo = ? WHERE id = ?', (nome_arquivo, os_id))
     conn.commit()
     conn.close()
@@ -44,11 +66,13 @@ def gerar_e_salvar_recibo(os_id):
 
 
 # --- ROTAS PRINCIPAIS E DASHBOARD (ATUALIZADAS) ---
+# --- ROTA INDEX (ATUALIZADA COM CÁLCULO DE MÉTRICAS) ---
 @main_routes.route('/')
 def index():
     conn = db.get_db_connection()
-    # ALTERAÇÃO AQUI: A query agora filtra para mostrar apenas as OS não arquivadas (arquivada = 0)
-    query = """
+
+    # Busca as OS ativas para o feed
+    query_os = """
         SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
         FROM ordens_servico as os
         JOIN equipamentos as eq ON os.equipamento_id = eq.id
@@ -56,9 +80,45 @@ def index():
         WHERE os.arquivada = 0
         ORDER BY os.id DESC
     """
-    ordens_servico = conn.execute(query).fetchall()
+    ordens_servico = conn.execute(query_os).fetchall()
+
+    # Calcula as métricas para o dashboard
+    stats = {
+        'em_andamento': 0,
+        'aguardando_aprovacao': 0,
+        'finalizadas': 0,
+        'valor_a_receber': 0.0
+    }
+
+    # Contagem de status
+    status_counts = conn.execute(
+        "SELECT status, COUNT(id) as count FROM ordens_servico WHERE arquivada = 0 GROUP BY status").fetchall()
+    for row in status_counts:
+        if row['status'] == 'Aprovado / Em Andamento':
+            stats['em_andamento'] = row['count']
+        elif row['status'] == 'Aguardando Aprovação do Cliente':
+            stats['aguardando_aprovacao'] = row['count']
+        elif row['status'] == 'Finalizado / Aguardando Retirada':
+            stats['finalizadas'] = row['count']
+
+    # Cálculo do valor a receber (Total Orçado - Total Pago) para OS finalizadas e não pagas
+    query_receber = """
+        SELECT
+            os.id,
+            (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = os.id) +
+            (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = os.id) as total_orcado,
+            (SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = os.id) as total_pago
+        FROM ordens_servico as os
+        WHERE os.status = 'Finalizado / Aguardando Retirada' AND os.arquivada = 0
+    """
+    contas_a_receber = conn.execute(query_receber).fetchall()
+    for conta in contas_a_receber:
+        saldo_devedor = conta['total_orcado'] - conta['total_pago']
+        if saldo_devedor > 0:
+            stats['valor_a_receber'] += saldo_devedor
+
     conn.close()
-    return render_template('index.html', ordens_servico=ordens_servico)
+    return render_template('index.html', ordens_servico=ordens_servico, stats=stats)
 
 
 # --- NOVAS ROTAS DE ARQUIVAMENTO ---
@@ -502,6 +562,7 @@ def gerar_os_pdf(os_id):
     return response
 
 
+# --- ROTA DE ATUALIZAÇÃO DE STATUS (CORRIGIDA) ---
 @main_routes.route('/os/<int:os_id>/atualizar_status', methods=['POST'])
 def atualizar_status(os_id):
     novo_status = request.form['status']
@@ -509,9 +570,13 @@ def atualizar_status(os_id):
     conn.execute('UPDATE ordens_servico SET status = ? WHERE id = ?', (novo_status, os_id))
     conn.commit()
     conn.close()
+
+    # CORREÇÃO AQUI: A lógica de redirecionamento agora está correta
     if novo_status == 'Entregue':
         nome_arquivo = gerar_e_salvar_recibo(os_id)
+        # Redireciona de volta para 'detalhe_os' com o nome do arquivo na URL
         return redirect(url_for('main.detalhe_os', os_id=os_id, recibo_gerado=nome_arquivo))
+
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
 
@@ -618,4 +683,38 @@ def editar_info_os(os_id):
         conn.close()
 
     return redirect(url_for('main.detalhe_os', os_id=os_id))
+
+
+# --- NOVA ROTA PARA RELATÓRIOS ---
+@main_routes.route('/relatorios', methods=['GET', 'POST'])
+def relatorios():
+    dados_relatorio = None
+    data_inicio = request.form.get('data_inicio')
+    data_fim = request.form.get('data_fim')
+
+    if request.method == 'POST' and data_inicio and data_fim:
+        conn = db.get_db_connection()
+
+        # Query para somar todos os pagamentos dentro do período
+        total_faturado = conn.execute(
+            "SELECT SUM(valor_pago) as total FROM pagamentos WHERE data_pagamento BETWEEN ? AND ?",
+            (data_inicio, data_fim)
+        ).fetchone()['total']
+
+        # Query para contar Ordens de Serviço concluídas no período
+        os_concluidas = conn.execute(
+            "SELECT COUNT(id) as count FROM ordens_servico WHERE status = 'Entregue' AND data_entrada BETWEEN ? AND ?",
+            (data_inicio, data_fim)
+        ).fetchone()['count']
+
+        conn.close()
+
+        dados_relatorio = {
+            "total_faturado": total_faturado or 0,
+            "os_concluidas": os_concluidas or 0,
+            "data_inicio": data_inicio,
+            "data_fim": data_fim
+        }
+
+    return render_template('relatorios.html', relatorio=dados_relatorio)
 

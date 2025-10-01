@@ -3,60 +3,99 @@
 {% block title %}Dashboard - Sistema Luthier{% endblock %}
 
 {% block content %}
+    <!-- NOVA SEÇÃO DE MÉTRICAS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="14 2 18 6 7 17 3 17 3 13 14 2"></polygon><line x1="3" y1="22" x2="21" y2="22"></line></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-title">Em Andamento</span>
+                <span class="stat-value">{{ stats.em_andamento }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon icon-orange">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-title">Aguardando Aprovação</span>
+                <span class="stat-value">{{ stats.aguardando_aprovacao }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon icon-green">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-title">Finalizadas</span>
+                <span class="stat-value">{{ stats.finalizadas }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+             <div class="stat-icon icon-purple">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-title">Valor a Receber</span>
+                <span class="stat-value">R$ {{ "%.2f"|format(stats.valor_a_receber) }}</span>
+            </div>
+        </div>
+    </div>
+
     <!-- SEÇÃO PARA CRIAR OS -->
     <div class="card cta-panel">
         <div class="cta-text">
             <h2>Iniciar Novo Serviço</h2>
             <p class="subtitle">Primeiro, vamos indicar o cliente para criar uma nova Ordem de Serviço.</p>
-            <p class="subtitle">Clique no botão "Criar OS" à direita, para prosseguir.</p>
         </div>
         <a href="{{ url_for('main.listar_clientes', source='os') }}" class="action-button cta-button">&#43; Criar OS</a>
     </div>
 
     <h2>Feed de Atividades (Ordens de Serviço Recentes)</h2>
     {% for os in ordens_servico %}
-    <div class="card os-card status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
-        <div class="os-header">
-            <h2><a class="card-title-link" href="{{ url_for('main.detalhe_os', os_id=os.id) }}">{{ os.tipo_equipamento }} {{ os.marca_equipamento }} ({{ os.nome_cliente }})</a></h2>
-            <span class="os-status status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
-                {{ os.status }}
-            </span>
-        </div>
-        <div class="os-body">
-            <div class="os-body-grid">
-                <div class="info-item">
-                    <span class="label">OS Nº</span>
-                    <span class="data">{{ os.id }}</span>
+        <div class="card os-card status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
+            <div class="os-header">
+                <h2><a class="card-title-link" href="{{ url_for('main.detalhe_os', os_id=os.id) }}">{{ os.tipo_equipamento }} {{ os.marca_equipamento }} ({{ os.nome_cliente }})</a></h2>
+                <span class="os-status status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
+                    {{ os.status }}
+                </span>
+            </div>
+            <div class="os-body">
+                <div class="os-body-grid">
+                    <div class="info-item">
+                        <span class="label">OS Nº</span>
+                        <span class="data">{{ os.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Data de Entrada</span>
+                        <span class="data">{{ os.data_entrada }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Acessórios</span>
+                        <span class="data">{{ os.acessorios_entrada or 'N/A' }}</span>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <span class="label">Data de Entrada</span>
-                    <span class="data">{{ os.data_entrada }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Acessórios</span>
-                    <span class="data">{{ os.acessorios_entrada or 'N/A' }}</span>
+                <div class="info-item-full">
+                    <span class="label">Problema Relatado</span>
+                    <span class="data">{{ os.descricao_problema }}</span>
                 </div>
             </div>
-            <div class="info-item-full">
-                <span class="label">Problema Relatado</span>
-                <span class="data">{{ os.descricao_problema }}</span>
+            <div class="os-footer">
+                <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="card-action-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                    Editar / Ver Detalhes
+                </a>
+                {% if os.status == 'Entregue' or os.status == 'Cancelado' %}
+                <form action="{{ url_for('main.arquivar_os', os_id=os.id) }}" method="POST" onsubmit="return confirm('Deseja arquivar esta Ordem de Serviço? Ela sairá do feed principal.');">
+                    <button type="submit" class="card-action-button archive-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        Arquivar
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
-        <div class="os-footer">
-            <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="card-action-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                Editar / Ver Detalhes
-            </a>
-            {% if os.status == 'Entregue' or os.status == 'Cancelado' %}
-            <form action="{{ url_for('main.arquivar_os', os_id=os.id) }}" method="POST" onsubmit="return confirm('Deseja arquivar esta Ordem de Serviço? Ela sairá do feed principal.');">
-                <button type="submit" class="card-action-button archive-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    Arquivar
-                </button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
     {% endfor %}
     {% if not ordens_servico %}
         <p style="text-align: center;">Nenhuma ordem de serviço ativa no momento.</p>
