@@ -7,12 +7,11 @@
     <title>{% block title %}Sistema Luthier{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- Bloco para que outras páginas possam adicionar seus próprios links no head (ex: Font Awesome) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     {% block head %}{% endblock %}
 </head>
 <body>
     <header class="global-header">
-        <div class="container header-container">
+        <div class="header-container">
             <div class="main-header">
                 <div class="header-title">
                     <h1>Oficina das Cordas</h1>
@@ -27,6 +26,8 @@
                 <a href="{{ url_for('main.listar_clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">Clientes</a>
                 <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if 'servico' in request.endpoint %}active{% endif %}">Catálogo</a>
                 <a href="{{ url_for('main.listar_estoque') }}" class="nav-link {% if 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
+                <!-- NOVO LINK PARA RELATÓRIOS -->
+                <a href="{{ url_for('main.relatorios') }}" class="nav-link {% if 'relatorios' in request.endpoint %}active{% endif %}">Relatórios</a>
                 <a href="{{ url_for('main.listar_arquivadas') }}" class="nav-link {% if 'arquivada' in request.endpoint %}active{% endif %}">Arquivados</a>
             </nav>
         </div>
@@ -36,3 +37,33 @@
         <!-- Aqui é onde o conteúdo específico de cada página será inserido -->
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+        // --- Script para aviso de alterações não salvas ---
+        let hasUnsavedChanges = false;
+        const forms = document.querySelectorAll('form');
+
+        // Monitora qualquer alteração nos campos do formulário
+        forms.forEach(form => {
+            form.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+            });
+
+            // Quando um formulário é enviado com sucesso, reseta a flag
+            form.addEventListener('submit', () => {
+                hasUnsavedChanges = false;
+            });
+        });
+
+        // Antes de o usuário sair da página, verifica a flag
+        window.addEventListener('beforeunload', (event) => {
+            if (hasUnsavedChanges) {
+                // Exibe a mensagem de confirmação padrão do navegador
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
+

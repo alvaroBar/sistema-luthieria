@@ -29,7 +29,7 @@
 
     {% if relatorio %}
     <div class="card">
-        <h2>Resultados para o período de {{ relatorio.data_inicio }} a {{ relatorio.data_fim }}</h2>
+        <h2>Resultados para o período de {{ relatorio.data_inicio | replace('-', '/') }} a {{ relatorio.data_fim | replace('-', '/') }}</h2>
         <div class="stats-grid" style="margin-top: 20px;">
             <div class="stat-card">
                 <div class="stat-icon icon-purple">
@@ -53,3 +53,4 @@
     </div>
     {% endif %}
 {% endblock %}
+
