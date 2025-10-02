@@ -4,6 +4,7 @@ import base64
 from datetime import date
 from flask import (Blueprint, render_template, request, url_for, redirect,
                    make_response, current_app, send_from_directory)
+from flask_login import login_required
 from weasyprint import HTML
 import db
 
@@ -68,6 +69,7 @@ def gerar_e_salvar_recibo(os_id):
 # --- ROTAS PRINCIPAIS E DASHBOARD (ATUALIZADAS) ---
 # --- ROTA INDEX (ATUALIZADA COM CÁLCULO DE MÉTRICAS) ---
 @main_routes.route('/')
+@login_required
 def index():
     conn = db.get_db_connection()
 
@@ -123,6 +125,7 @@ def index():
 
 # --- NOVAS ROTAS DE ARQUIVAMENTO ---
 @main_routes.route('/os/<int:os_id>/arquivar', methods=['POST'])
+@login_required
 def arquivar_os(os_id):
     """Marca uma Ordem de Serviço como arquivada, SE o status permitir."""
     conn = db.get_db_connection()
@@ -140,6 +143,7 @@ def arquivar_os(os_id):
 
 
 @main_routes.route('/arquivadas')
+@login_required
 def listar_arquivadas():
     """Mostra a página com todas as Ordens de Serviço arquivadas."""
     conn = db.get_db_connection()
@@ -157,6 +161,7 @@ def listar_arquivadas():
 
 
 @main_routes.route('/os/<int:os_id>/desarquivar', methods=['POST'])
+@login_required
 def desarquivar_os(os_id):
     """Marca uma Ordem de Serviço como não arquivada, trazendo-a de volta para o feed."""
     conn = db.get_db_connection()
@@ -168,6 +173,7 @@ def desarquivar_os(os_id):
 
 # --- ROTAS DE GERENCIAMENTO DO CATÁLOGO DE SERVIÇOS ---
 @main_routes.route('/servicos')
+@login_required
 def listar_servicos():
     conn = db.get_db_connection()
     servicos = conn.execute('SELECT * FROM servicos ORDER BY nome').fetchall()
@@ -176,6 +182,7 @@ def listar_servicos():
 
 
 @main_routes.route('/servicos/novo', methods=['GET', 'POST'])
+@login_required
 def novo_servico():
     if request.method == 'POST':
         nome = request.form['nome']
@@ -196,6 +203,7 @@ def novo_servico():
 
 
 @main_routes.route('/servicos/<int:servico_id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_servico(servico_id):
     conn = db.get_db_connection()
     servico = conn.execute('SELECT * FROM servicos WHERE id = ?', (servico_id,)).fetchone()
@@ -210,6 +218,7 @@ def editar_servico(servico_id):
 
 
 @main_routes.route('/servicos/<int:servico_id>/excluir', methods=['POST'])
+@login_required
 def excluir_servico(servico_id):
     conn = db.get_db_connection()
     conn.execute('DELETE FROM servicos WHERE id = ?', (servico_id,))
@@ -220,6 +229,7 @@ def excluir_servico(servico_id):
 
 # --- ROTAS DE CLIENTES (COM ATUALIZAÇÃO) ---
 @main_routes.route('/clientes')
+@login_required
 def listar_clientes():
     termo_busca = request.args.get('busca')
     # Captura o novo parâmetro 'source' da URL
@@ -238,6 +248,7 @@ def listar_clientes():
 
 
 @main_routes.route('/clientes/novo', methods=['GET', 'POST'])
+@login_required
 def novo_cliente():
     if request.method == 'POST':
         conn = db.get_db_connection()
@@ -252,6 +263,7 @@ def novo_cliente():
 
 
 @main_routes.route('/clientes/<int:cliente_id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_cliente(cliente_id):
     conn = db.get_db_connection()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
@@ -268,6 +280,7 @@ def editar_cliente(cliente_id):
 
 
 @main_routes.route('/clientes/<int:cliente_id>/excluir', methods=['POST'])
+@login_required
 def excluir_cliente(cliente_id):
     conn = db.get_db_connection()
     try:
@@ -282,6 +295,7 @@ def excluir_cliente(cliente_id):
 
 # --- ROTAS DE EQUIPAMENTOS (ATUALIZADAS) ---
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos')
+@login_required
 def listar_equipamentos(cliente_id):
     conn = db.get_db_connection()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
@@ -291,6 +305,7 @@ def listar_equipamentos(cliente_id):
 
 
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos/novo', methods=['GET', 'POST'])
+@login_required
 def novo_equipamento(cliente_id):
     conn = db.get_db_connection()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
@@ -319,6 +334,7 @@ def novo_equipamento(cliente_id):
 
 
 @main_routes.route('/equipamento/<int:equipamento_id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_equipamento(equipamento_id):
     conn = db.get_db_connection()
     # Pega os dados do equipamento e do cliente de uma vez só
@@ -348,6 +364,7 @@ def editar_equipamento(equipamento_id):
 
 
 @main_routes.route('/equipamento/<int:equipamento_id>/excluir', methods=['POST'])
+@login_required
 def excluir_equipamento(equipamento_id):
     conn = db.get_db_connection()
     # Primeiro, descobre a qual cliente o equipamento pertence para poder redirecionar de volta
@@ -372,6 +389,7 @@ def excluir_equipamento(equipamento_id):
 
 # --- ROTAS DE ORDEM DE SERVIÇO ---
 @main_routes.route('/equipamento/<int:equipamento_id>/os/novo', methods=['GET', 'POST'])
+@login_required
 def nova_os(equipamento_id):
     conn = db.get_db_connection()
     dados_completos = conn.execute(
@@ -407,6 +425,7 @@ def nova_os(equipamento_id):
 
 
 @main_routes.route('/os/<int:os_id>')
+@login_required
 def detalhe_os(os_id):
     conn = db.get_db_connection()
     query_os = "SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ? "
@@ -440,6 +459,7 @@ def detalhe_os(os_id):
 # --- ROTAS DO ORÇAMENTO (ATUALIZADAS) ---
 
 @main_routes.route('/os/<int:os_id>/add_servico', methods=['POST'])
+@login_required
 def add_servico(os_id):
     conn = db.get_db_connection()
     servico_id = request.form['servico_id']
@@ -455,6 +475,7 @@ def add_servico(os_id):
 
 
 @main_routes.route('/orcamento/item/<int:item_id>/excluir', methods=['POST'])
+@login_required
 def excluir_item_orcamento(item_id):
     conn = db.get_db_connection()
     item = conn.execute('SELECT ordem_servico_id FROM orcamento_itens WHERE id = ?', (item_id,)).fetchone()
@@ -467,6 +488,7 @@ def excluir_item_orcamento(item_id):
 
 
 @main_routes.route('/os/<int:os_id>/add_produto', methods=['POST'])
+@login_required
 def add_produto_orcamento(os_id):
     estoque_item_id = request.form['estoque_item_id']
     quantidade_usada = int(request.form.get('quantidade_usada', 1))
@@ -484,6 +506,7 @@ def add_produto_orcamento(os_id):
 
 
 @main_routes.route('/orcamento/produto/<int:item_id>/excluir', methods=['POST'])
+@login_required
 def excluir_produto_orcamento(item_id):
     conn = db.get_db_connection()
     item_orcamento = conn.execute('SELECT * FROM orcamento_produtos WHERE id = ?', (item_id,)).fetchone()
@@ -502,6 +525,7 @@ def excluir_produto_orcamento(item_id):
 
 
 @main_routes.route('/os/<int:os_id>/add_pagamento', methods=['POST'])
+@login_required
 def add_pagamento(os_id):
     valor_pago = request.form['valor_pago']
     forma_pagamento = request.form['forma_pagamento']
@@ -516,6 +540,7 @@ def add_pagamento(os_id):
 
 
 @main_routes.route('/os/<int:os_id>/pdf')
+@login_required
 def gerar_os_pdf(os_id):
     conn = db.get_db_connection()
     query_os = "SELECT os.*, eq.id as equipamento_id, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.id as cliente_id, cl.nome as nome_cliente FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ? "
@@ -564,6 +589,7 @@ def gerar_os_pdf(os_id):
 
 # --- ROTA DE ATUALIZAÇÃO DE STATUS (CORRIGIDA) ---
 @main_routes.route('/os/<int:os_id>/atualizar_status', methods=['POST'])
+@login_required
 def atualizar_status(os_id):
     novo_status = request.form['status']
     conn = db.get_db_connection()
@@ -581,11 +607,13 @@ def atualizar_status(os_id):
 
 
 @main_routes.route('/recibos/<path:filename>')
+@login_required
 def servir_recibo(filename):
     return send_from_directory(current_app.config['RECIBOS_FOLDER'], filename, as_attachment=False)
 
 
 @main_routes.route('/estoque')
+@login_required
 def listar_estoque():
     conn = db.get_db_connection()
     itens = conn.execute('SELECT * FROM estoque_itens ORDER BY nome').fetchall()
@@ -594,6 +622,7 @@ def listar_estoque():
 
 
 @main_routes.route('/estoque/novo', methods=['GET', 'POST'])
+@login_required
 def novo_item_estoque():
     if request.method == 'POST':
         nome = request.form['nome']
@@ -617,6 +646,7 @@ def novo_item_estoque():
 
 
 @main_routes.route('/estoque/<int:item_id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_item_estoque(item_id):
     conn = db.get_db_connection()
     item = conn.execute('SELECT * FROM estoque_itens WHERE id = ?', (item_id,)).fetchone()
@@ -635,6 +665,7 @@ def editar_item_estoque(item_id):
 
 
 @main_routes.route('/estoque/<int:item_id>/excluir', methods=['POST'])
+@login_required
 def excluir_item_estoque(item_id):
     conn = db.get_db_connection()
     try:
@@ -649,6 +680,7 @@ def excluir_item_estoque(item_id):
 
 # --- NOVA ROTA PARA ADICIONAR QUANTIDADE AO ESTOQUE ---
 @main_routes.route('/estoque/<int:item_id>/add_quantidade', methods=['POST'])
+@login_required
 def add_quantidade_estoque(item_id):
     """Adiciona uma quantidade especificada a um item do estoque."""
     if request.method == 'POST':
@@ -670,6 +702,7 @@ def add_quantidade_estoque(item_id):
 
 # --- NOVA ROTA PARA EDITAR INFORMAÇÕES DA OS ---
 @main_routes.route('/os/<int:os_id>/editar_info', methods=['POST'])
+@login_required
 def editar_info_os(os_id):
     """Atualiza as informações de acessórios e problema de uma OS."""
     if request.method == 'POST':
@@ -687,6 +720,7 @@ def editar_info_os(os_id):
 
 # --- NOVA ROTA PARA RELATÓRIOS ---
 @main_routes.route('/relatorios', methods=['GET', 'POST'])
+@login_required
 def relatorios():
     dados_relatorio = None
     data_inicio = request.form.get('data_inicio')

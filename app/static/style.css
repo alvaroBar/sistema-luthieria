@@ -83,6 +83,12 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .nav-link.active { color: var(--cor-primaria-botao); border-bottom: 3px solid var(--cor-primaria-botao); }
 main.container { padding-top: 40px; }
 
+/* --- ESTILOS DO MENU DE USUÁRIO (NOVO) --- */
+.user-menu-bar { background-color: var(--cor-fundo); border-bottom: 1px solid var(--cor-borda); padding: 8px 20px; }
+.user-menu-container { padding: 0 !important; display: flex; justify-content: flex-end; align-items: center; gap: 16px; font-size: 0.9em; max-width: 900px; margin: auto; }
+.logout-button { font-weight: 600; color: var(--cor-perigo-botao); text-decoration: none; }
+.logout-button:hover { text-decoration: underline; }
+
 /* --- CABEÇALHO DE PÁGINA E BUSCA --- */
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--cor-linha-divisoria); }
 .page-header h1 { margin: 0; }

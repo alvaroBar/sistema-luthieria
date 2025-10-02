@@ -26,12 +26,21 @@
                 <a href="{{ url_for('main.listar_clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">Clientes</a>
                 <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if 'servico' in request.endpoint %}active{% endif %}">Catálogo</a>
                 <a href="{{ url_for('main.listar_estoque') }}" class="nav-link {% if 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
-                <!-- NOVO LINK PARA RELATÓRIOS -->
                 <a href="{{ url_for('main.relatorios') }}" class="nav-link {% if 'relatorios' in request.endpoint %}active{% endif %}">Relatórios</a>
                 <a href="{{ url_for('main.listar_arquivadas') }}" class="nav-link {% if 'arquivada' in request.endpoint %}active{% endif %}">Arquivados</a>
             </nav>
         </div>
     </header>
+
+    <!-- NOVA BARRA DE USUÁRIO E LOGOUT -->
+    {% if current_user.is_authenticated %}
+    <div class="user-menu-bar">
+        <div class="container user-menu-container">
+            <span>Bem-vindo, <strong>{{ current_user.username }}</strong>!</span>
+            <a href="{{ url_for('auth.logout') }}" class="logout-button">Sair</a>
+        </div>
+    </div>
+    {% endif %}
 
     <main class="container">
         <!-- Aqui é onde o conteúdo específico de cada página será inserido -->
