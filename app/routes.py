@@ -2,13 +2,27 @@ import sqlite3
 import os
 import base64
 from datetime import date
+from functools import wraps
+
 from flask import (Blueprint, render_template, request, url_for, redirect,
-                   make_response, current_app, send_from_directory)
-from flask_login import login_required
+                   make_response, current_app, send_from_directory, flash)
+from flask_login import login_required, current_user
 from weasyprint import HTML
+from werkzeug.security import generate_password_hash
+
 import db
 
 main_routes = Blueprint('main', __name__)
+
+# --- DECORADOR DE PERMISSÃO DE ADMIN ---
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash("Acesso negado: você não tem permissão de administrador.", "error")
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # --- FUNÇÃO DE AJUDA PARA O RECIBO (CORRIGIDA) ---
@@ -66,7 +80,102 @@ def gerar_e_salvar_recibo(os_id):
     return nome_arquivo
 
 
-# --- ROTAS PRINCIPAIS E DASHBOARD (ATUALIZADAS) ---
+# --- LISTAR USUÁRIOS ---
+@main_routes.route('/usuarios')
+@login_required
+@admin_required
+def listar_usuarios():
+    conn = db.get_db_connection()
+    usuarios = conn.execute('SELECT id, username, role FROM users ORDER BY username').fetchall()
+    conn.close()
+    return render_template('usuarios.html', usuarios=usuarios)
+
+
+# --- CRIAR NOVO USUÁRIO ---
+@main_routes.route('/usuarios/novo', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def novo_usuario():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role')
+
+        conn = db.get_db_connection()
+        user_exists = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+
+        if user_exists:
+            flash(f"Erro: O nome de usuário '{username}' já existe.", "error")
+            conn.close()
+            return redirect(url_for('main.novo_usuario'))
+
+        password_hash = generate_password_hash(password)
+
+        conn.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+                     (username, password_hash, role))
+        conn.commit()
+        conn.close()
+        flash(f"Usuário '{username}' criado com sucesso!", "success")
+        return redirect(url_for('main.listar_usuarios'))
+
+    return render_template('novo_usuario.html')
+
+
+# --- EXCLUIR USUÁRIO ---
+@main_routes.route('/usuarios/<int:user_id>/excluir', methods=['POST'])
+@login_required
+@admin_required
+def excluir_usuario(user_id):
+    conn = db.get_db_connection()
+    if user_id != 1:  # Proteção contra exclusão do admin principal
+        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        conn.commit()
+        flash("Usuário excluído com sucesso.", "success")
+    else:
+        flash("Não é possível excluir o usuário administrador principal.", "error")
+    conn.close()
+    return redirect(url_for('main.listar_usuarios'))
+
+
+@main_routes.route('/usuarios/<int:user_id>/editar', methods=['POST'])
+@login_required
+@admin_required
+def editar_usuario(user_id):
+    """Atualiza os dados de um usuário existente."""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role')
+
+        conn = db.get_db_connection()
+
+        # Verifica se o novo nome de usuário já está em uso por OUTRO usuário
+        user_exists = conn.execute('SELECT id FROM users WHERE username = ? AND id != ?',
+                                   (username, user_id)).fetchone()
+        if user_exists:
+            flash(f"Erro: O nome de usuário '{username}' já está em uso.", "error")
+            conn.close()
+            return redirect(url_for('main.listar_usuarios'))
+
+        if password:
+            # Se uma nova senha foi fornecida, criptografa e atualiza
+            password_hash = generate_password_hash(password)
+            conn.execute('UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?',
+                         (username, password_hash, role, user_id))
+        else:
+            # Se o campo senha estiver vazio, atualiza apenas o nome e a permissão
+            conn.execute('UPDATE users SET username = ?, role = ? WHERE id = ?',
+                         (username, role, user_id))
+
+        conn.commit()
+        conn.close()
+        flash(f"Usuário '{username}' atualizado com sucesso!", "success")
+
+    return redirect(url_for('main.listar_usuarios'))
+
+
+@main_routes.route('/usuarios/<int:user_id>/excluir', methods=['POST'])
+
 # --- ROTA INDEX (ATUALIZADA COM CÁLCULO DE MÉTRICAS) ---
 @main_routes.route('/')
 @login_required

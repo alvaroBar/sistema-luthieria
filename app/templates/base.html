@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- O título agora é um bloco que pode ser preenchido por cada página -->
     <title>{% block title %}Sistema Luthier{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Bloco para que outras páginas possam adicionar seus próprios links no head (ex: Font Awesome) -->
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -32,18 +30,33 @@
         </div>
     </header>
 
-    <!-- NOVA BARRA DE USUÁRIO E LOGOUT -->
     {% if current_user.is_authenticated %}
     <div class="user-menu-bar">
         <div class="container user-menu-container">
             <span>Bem-vindo, <strong>{{ current_user.username }}</strong>!</span>
-            <a href="{{ url_for('auth.logout') }}" class="logout-button">Sair</a>
+            <div>
+                <!-- O link só aparece se o usuário for admin -->
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('main.listar_usuarios') }}" class="user-menu-link">Gerenciar Usuários</a>
+                <span class="separator">|</span>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="logout-button">Sair</a>
+            </div>
         </div>
     </div>
     {% endif %}
 
     <main class="container">
-        <!-- Aqui é onde o conteúdo específico de cada página será inserido -->
+        <!-- Bloco para exibir mensagens de feedback (flash messages) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Conteúdo específico de cada página -->
         {% block content %}{% endblock %}
     </main>
 
@@ -52,22 +65,17 @@
         let hasUnsavedChanges = false;
         const forms = document.querySelectorAll('form');
 
-        // Monitora qualquer alteração nos campos do formulário
         forms.forEach(form => {
             form.addEventListener('input', () => {
                 hasUnsavedChanges = true;
             });
-
-            // Quando um formulário é enviado com sucesso, reseta a flag
             form.addEventListener('submit', () => {
                 hasUnsavedChanges = false;
             });
         });
 
-        // Antes de o usuário sair da página, verifica a flag
         window.addEventListener('beforeunload', (event) => {
             if (hasUnsavedChanges) {
-                // Exibe a mensagem de confirmação padrão do navegador
                 event.preventDefault();
                 event.returnValue = '';
             }

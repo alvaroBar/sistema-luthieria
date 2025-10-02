@@ -81,11 +81,12 @@ form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !imp
 .nav-link { padding: 12px 16px; border-radius: 8px 8px 0 0; font-family: var(--fonte-corpo); font-weight: 600; color: var(--cor-texto-secundario); text-decoration: none; border-bottom: 3px solid transparent; transition: all 0.2s ease-in-out; }
 .nav-link:hover { background-color: var(--cor-fundo); color: var(--cor-texto-primario); text-decoration: none; }
 .nav-link.active { color: var(--cor-primaria-botao); border-bottom: 3px solid var(--cor-primaria-botao); }
-main.container { padding-top: 40px; }
+main.container { padding-top: 20px; }
 
-/* --- ESTILOS DO MENU DE USUÁRIO (NOVO) --- */
-.user-menu-bar { background-color: var(--cor-fundo); border-bottom: 1px solid var(--cor-borda); padding: 8px 20px; }
+/* --- ESTILOS DO MENU DE USUÁRIO --- */
+.user-menu-bar { background-color: var(--cor-fundo); border-bottom: 1px solid var(--cor-borda); padding: 8px 20px; margin-bottom: 24px; }
 .user-menu-container { padding: 0 !important; display: flex; justify-content: flex-end; align-items: center; gap: 16px; font-size: 0.9em; max-width: 900px; margin: auto; }
+.user-menu-link { font-weight: 600; color: var(--cor-texto-secundario); }
 .logout-button { font-weight: 600; color: var(--cor-perigo-botao); text-decoration: none; }
 .logout-button:hover { text-decoration: underline; }
 
@@ -101,6 +102,11 @@ main.container { padding-top: 40px; }
 .info-banner p { margin: 0; font-family: var(--fonte-corpo); line-height: 1.6; }
 .info-banner::before { content: '💡'; font-size: 24px; line-height: 1; }
 @media (prefers-color-scheme: dark) { .info-banner { color: var(--cor-texto-secundario); } }
+
+/* --- FLASH MESSAGES --- */
+.flash-message { padding: 15px; margin-bottom: 20px; border-radius: var(--raio-borda-card); border: 1px solid transparent; }
+.flash-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+.flash-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
 
 /* --- NOVA SEÇÃO DE MÉTRICAS DO DASHBOARD --- */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
@@ -134,7 +140,7 @@ main.container { padding-top: 40px; }
 .data-table td { border-bottom: 1px solid var(--cor-linha-divisoria); }
 .data-table.table-hover tbody tr:hover { background-color: var(--cor-fundo); }
 .data-table a { font-weight: 600; }
-.data-table th.actions-column { width: 180px; text-align: right; }
+.data-table th.actions-column { text-align: right; }
 .actions-cell { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
 .action-link { padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9em; background-color: transparent; color: var(--cor-texto-secundario); border: 1px solid transparent; transition: all 0.2s ease-in-out; }
 .action-link:hover { text-decoration: none; }
@@ -144,19 +150,25 @@ main.container { padding-top: 40px; }
 .action-link--edit:hover { background-color: #e0e7ff; color: var(--cor-primaria-botao); transform: scale(1.1); }
 button.action-link--delete { background-color: transparent; color: var(--cor-texto-secundario); border: none; cursor: pointer; transition: all 0.2s ease-in-out; }
 button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-perigo-botao); transform: scale(1.1); }
+.action-link--add { padding: 6px; }
+.action-link--add:hover { background-color: #dcfce7; color: #166534; transform: scale(1.1); }
 
-/* --- PAINEL DE NAVEGAÇÃO (DASHBOARD) --- */
-.nav-panel h2 { margin-top: 0; border-bottom: 1px solid var(--cor-linha-divisoria); padding-bottom: 10px; }
-.nav-grid { display: flex; gap: 15px; flex-wrap: wrap; }
-.nav-card { flex-grow: 1; padding: 20px; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda-card); text-align: center; text-decoration: none; color: var(--cor-texto-primario); font-weight: bold; transition: all 0.2s ease-in-out; }
-.nav-card:hover { transform: translateY(-3px); box-shadow: var(--sombra-card-hover); border-color: var(--cor-primaria-botao); text-decoration: none; }
-.nav-card--add { background-color: var(--cor-fundo-botao-add-claro); color: var(--cor-texto-botao-add-claro); }
+/* --- AJUSTES DE LAYOUT ESPECÍFICOS DAS TABELAS --- */
+.data-table--clientes { table-layout: fixed; }
+.data-table--clientes th:nth-child(1) { width: 45%; }
+.data-table--clientes th:nth-child(2) { width: 25%; }
+.data-table--clientes th:nth-child(3) { width: 30%; }
 
-/* --- PAINEL DE CHAMADA PARA AÇÃO (CTA) --- */
-.cta-panel { display: flex; justify-content: space-between; align-items: center; background-color: var(--cor-fundo); }
-.cta-panel .subtitle { opacity: 0; max-height: 0; overflow: hidden; margin-top: 0; transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out; }
-.cta-panel:hover .subtitle { opacity: 1; max-height: 2em; margin-top: 4px; }
-.cta-button { background-color: var(--cor-sucesso-botao); font-size: 1.1em; padding: 14px 22px; white-space: nowrap; }
+.data-table--estoque .actions-column { width: 180px; }
+
+/* CORREÇÃO PARA A TABELA DE USUÁRIOS */
+.data-table--usuarios { table-layout: fixed; }
+.data-table--usuarios th:nth-child(1) { width: 50%; }
+.data-table--usuarios th:nth-child(2) { width: 30%; }
+.data-table--usuarios th:nth-child(3) { width: 20%; }
+
+/* Corrigido: largura fixa para as ações */
+.data-table--usuarios .actions-column { width: 120px; }
 
 /* --- CARDS DO FEED DE ATIVIDADES --- */
 .card-link { text-decoration: none; color: inherit; }

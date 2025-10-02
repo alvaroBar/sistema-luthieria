@@ -23,7 +23,7 @@ try:
     if cursor.fetchone() is None:
         # Cria o usuário 'admin' com uma senha padrão 'admin'
         # Em um ambiente real, essa senha deve ser alterada ou definida de forma mais segura.
-        senha_hash = generate_password_hash('admin')
+        senha_hash = generate_password_hash('@dmin*c@o')
         cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
                        ('admin', senha_hash, 'admin'))
         print("Usuário 'admin' padrão criado com a senha 'admin'.")
