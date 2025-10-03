@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Usuário{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Adicionar Novo Usuário</h1>
+        </div>
+        <a href="{{ url_for('main.listar_usuarios') }}" class="action-button" style="background-color: var(--cor-secundaria-botao);">
+            ⬅ Voltar
+        </a>
+    </div>
+
+    <div class="card">
+        <form method="POST" action="{{ url_for('main.novo_usuario') }}">
+            <div class="form-group">
+                <label for="username">Nome de Usuário</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">Permissão</label>
+                <select id="role" name="role" required>
+                    <option value="user">Usuário</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+
+            <button type="submit" class="action-button" style="background-color: var(--cor-sucesso-botao);">
+                Salvar Usuário
+            </button>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Equipamento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div class="header-title">
+                <h1>Adicionar Equipamento para {{ cliente.nome }}</h1>
+                <p class="subtitle">Preencha os dados do instrumento.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="POST">
+                <div class="form-grid">
+                    <label for="tipo">Tipo:</label>
+                    <select id="tipo" name="tipo" required onchange="toggleOutroTipo(this)">
+                        <option value="Guitarra">Guitarra</option>
+                        <option value="Baixo">Baixo</option>
+                        <option value="Violão">Violão</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+
+                    <div id="outro-tipo-wrapper" style="display: none;" class="full-width">
+                        <label for="tipo_outro">Especifique o tipo:</label>
+                        <input type="text" id="tipo_outro" name="tipo_outro" placeholder="Ex: Cavaquinho, Ukulele...">
+                    </div>
+
+                    <label for="marca">Marca:</label>
+                    <input type="text" id="marca" name="marca" required>
+
+                    <label for="modelo">Modelo:</label>
+                    <input type="text" id="modelo" name="modelo">
+
+                    <label for="numero_serie">Número de Série:</label>
+                    <input type="text" id="numero_serie" name="numero_serie">
+                </div>
+                <hr>
+                <div class="actions-cell" style="justify-content: flex-end;">
+                    <a href="{{ url_for('main.listar_equipamentos', cliente_id=cliente.id) }}" class="action-link">Cancelar</a>
+                    <button type="submit">Salvar Equipamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleOutroTipo(selectElement) {
+            const wrapper = document.getElementById('outro-tipo-wrapper');
+            const input = document.getElementById('tipo_outro');
+            if (selectElement.value === 'Outro') {
+                wrapper.style.display = 'grid'; // Usa 'grid' para se alinhar com o form-grid
+                input.required = true;
+            } else {
+                wrapper.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

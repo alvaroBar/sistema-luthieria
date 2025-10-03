@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipamentos de {{ cliente.nome }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        /* --- ANIMAÇÃO DO BOTÃO --- */
+        .move-down {
+            display: inline-block;
+            margin-top: 20px;
+            transition: transform 0.6s ease, opacity 0.6s ease;
+        }
+
+        .move-down.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .move-down.hide {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Equipamentos de {{ cliente.nome }}</h1>
+            <p class="subtitle"><a href="{{ url_for('main.listar_clientes') }}">&larr; Voltar para a lista de clientes</a></p>
+        </div>
+        <a id="btn-novo-equipamento-top" href="{{ url_for('main.novo_equipamento', cliente_id=cliente.id) }}" class="action-button"
+           style="background-color: var(--cor-sucesso-botao);">&#43; Adicionar Equipamento</a>
+    </div>
+
+    <!-- CARD COM A TABELA -->
+    <div class="card">
+        {% if equipamentos %}
+        <table class="data-table table-hover">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Nº de Série</th>
+                    <th class="actions-column">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+    {% for equipamento in equipamentos %}
+    <tr class="clickable-row" data-href="{{ url_for('main.nova_os', equipamento_id=equipamento.id) }}">
+        <td>{{ equipamento.tipo }}</td>
+        <td>{{ equipamento.marca }}</td>
+        <td>{{ equipamento.modelo }}</td>
+        <td>{{ equipamento.numero_serie }}</td>
+        <td class="actions-cell">
+            <a href="{{ url_for('main.nova_os', equipamento_id=equipamento.id) }}" class="action-button" style="font-size: 0.9em; padding: 8px 12px;">Criar OS</a>
+            <a href="{{ url_for('main.editar_equipamento', equipamento_id=equipamento.id) }}" class="action-link action-link--edit" title="Editar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+            </a>
+            <form class="delete-form" action="{{ url_for('main.excluir_equipamento', equipamento_id=equipamento.id) }}" method="POST">
+                <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir este equipamento? Esta ação não pode ser desfeita.');" title="Excluir">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center;">Nenhum equipamento cadastrado para este cliente.</p>
+        <a id="btn-novo-equipamento-bottom" href="{{ url_for('main.novo_equipamento', cliente_id=cliente.id) }}" class="action-button move-down hide" style="background-color: var(--cor-sucesso-botao);">
+            &#43; Adicionar Equipamento
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Botão inferior animação
+    const btnBottom = document.getElementById("btn-novo-equipamento-bottom");
+    if(btnBottom){
+        setTimeout(() => {
+            btnBottom.classList.remove('hide');
+            btnBottom.classList.add('show');
+        }, 200);
+    }
+
+    // Linha clicável para redirecionar à criação de OS
+    document.querySelectorAll(".clickable-row").forEach(row => {
+        row.addEventListener("click", function(e) {
+            // Evita o clique se for nos ícones de ação ou no botão Criar OS
+            if(e.target.closest(".action-link") || e.target.closest(".action-button") || e.target.closest("form")) return;
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
+
+</body>
+</html>

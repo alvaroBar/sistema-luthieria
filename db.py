@@ -1,13 +1,13 @@
 import sqlite3
 import os
 
-# Define o caminho do banco de dados na raiz do projeto
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'luthier.db')
+# Importa a variável do caminho de AppData que definimos no __init__.py
+from app import APP_DATA_PATH
 
 def get_db_connection():
-    """Cria e retorna uma conexão com o banco de dados."""
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    """Cria uma conexão com o banco de dados localizado na pasta AppData."""
+    db_path = os.path.join(APP_DATA_PATH, 'luthier.db')
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 

@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import base64
+import signal
 from datetime import date
 from functools import wraps
 
@@ -860,4 +861,15 @@ def relatorios():
         }
 
     return render_template('relatorios.html', relatorio=dados_relatorio)
+
+# Adicione esta nova rota no final do arquivo
+@main_routes.route('/shutdown')
+@login_required
+def shutdown():
+    """Desliga o servidor de forma segura."""
+    print("Servidor recebendo ordem para desligar...")
+    # Envia um sinal de interrupção (como Ctrl+C) para o processo atual,
+    # fazendo com que o servidor Waitress encerre.
+    os.kill(os.getpid(), signal.SIGINT)
+    return 'Servidor está desligando...'
 

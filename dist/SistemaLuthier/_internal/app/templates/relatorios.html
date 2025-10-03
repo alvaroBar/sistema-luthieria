@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Relatórios</h1>
+            <p class="subtitle">Analise o desempenho da sua oficina por período.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Filtrar por Período</h2>
+        <form method="POST" class="form-grid" style="grid-template-columns: 1fr 1fr auto;">
+            <div>
+                <label for="data_inicio">Data de Início:</label>
+                <input type="date" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio else '' }}" required>
+            </div>
+            <div>
+                <label for="data_fim">Data de Fim:</label>
+                <input type="date" id="data_fim" name="data_fim" value="{{ relatorio.data_fim if relatorio else '' }}" required>
+            </div>
+            <div class="actions-cell" style="align-self: end;">
+                <button type="submit" class="button--primary">Gerar Relatório</button>
+            </div>
+        </form>
+    </div>
+
+    {% if relatorio %}
+    <div class="card">
+        <h2>Resultados para o período de {{ relatorio.data_inicio | replace('-', '/') }} a {{ relatorio.data_fim | replace('-', '/') }}</h2>
+        <div class="stats-grid" style="margin-top: 20px;">
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-title">Total Faturado no Período</span>
+                    <span class="stat-value">R$ {{ "%.2f"|format(relatorio.total_faturado) }}</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-title">Serviços Concluídos</span>
+                    <span class="stat-value">{{ relatorio.os_concluidas }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+

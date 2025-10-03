@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Equipamento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div class="header-title">
+                <h1>Editar Equipamento de {{ equipamento.nome_cliente }}</h1>
+                <p class="subtitle">Atualize os dados do instrumento.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="POST">
+                {% set tipos_padrao = ['Guitarra', 'Baixo', 'Violão'] %}
+                <div class="form-grid">
+                    <label for="tipo">Tipo:</label>
+                    <select id="tipo" name="tipo" required onchange="toggleOutroTipo(this)">
+                        {% for tipo_padrao in tipos_padrao %}
+                            <option value="{{ tipo_padrao }}" {% if equipamento.tipo == tipo_padrao %}selected{% endif %}>{{ tipo_padrao }}</option>
+                        {% endfor %}
+                        <option value="Outro" {% if equipamento.tipo not in tipos_padrao %}selected{% endif %}>Outro</option>
+                    </select>
+
+                    <div id="outro-tipo-wrapper" style="display: none;" class="full-width">
+                        <label for="tipo_outro">Especifique o tipo:</label>
+                        <input type="text" id="tipo_outro" name="tipo_outro" value="{% if equipamento.tipo not in tipos_padrao %}{{ equipamento.tipo }}{% endif %}">
+                    </div>
+
+                    <label for="marca">Marca:</label>
+                    <input type="text" id="marca" name="marca" value="{{ equipamento.marca }}" required>
+
+                    <label for="modelo">Modelo:</label>
+                    <input type="text" id="modelo" name="modelo" value="{{ equipamento.modelo }}">
+
+                    <label for="numero_serie">Número de Série:</label>
+                    <input type="text" id="numero_serie" name="numero_serie" value="{{ equipamento.numero_serie }}">
+                </div>
+                <hr>
+                <div class="actions-cell" style="justify-content: flex-end;">
+                    <a href="{{ url_for('main.listar_equipamentos', cliente_id=equipamento.cliente_id) }}" class="action-link">Cancelar</a>
+                    <button type="submit" class="button--primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleOutroTipo(selectElement) {
+            const wrapper = document.getElementById('outro-tipo-wrapper');
+            const input = document.getElementById('tipo_outro');
+            if (selectElement.value === 'Outro') {
+                wrapper.style.display = 'grid';
+                input.required = true;
+            } else {
+                wrapper.style.display = 'none';
+                input.required = false;
+                // Não limpa o valor, caso o usuário queira voltar
+            }
+        }
+        // Executa a função uma vez no carregamento da página para definir o estado inicial correto
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleOutroTipo(document.getElementById('tipo'));
+        });
+    </script>
+</body>
+</html>
