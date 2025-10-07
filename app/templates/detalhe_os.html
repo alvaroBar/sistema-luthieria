@@ -38,11 +38,11 @@
                     </select>
                     <button type="submit" class="button--primary">Atualizar</button>
                 </form>
-                {% if os.caminho_recibo %}
-                    <a href="{{ url_for('main.servir_recibo', filename=os.caminho_recibo) }}" target="_blank" class="pdf-button" style="background-color: var(--cor-sucesso-botao);">Ver 2ª Via do Recibo</a>
-                {% else %}
-                    <a href="{{ url_for('main.gerar_os_pdf', os_id=os.id) }}" target="_blank" class="pdf-button">Imprimir / Gerar PDF da OS</a>
-                {% endif %}
+                {% if (os.status == 'Entregue' or os.status == 'Cancelado') and os.caminho_recibo %}
+    <a href="{{ url_for('main.servir_recibo', filename=os.caminho_recibo) }}" target="_blank" class="pdf-button" style="background-color: var(--cor-sucesso-botao);">Ver 2ª Via do Recibo</a>
+{% else %}
+    <a href="{{ url_for('main.gerar_os_pdf', os_id=os.id) }}" target="_blank" class="pdf-button">Imprimir / Gerar PDF da OS</a>
+{% endif %}
             </div>
         </div>
     </div>
@@ -57,7 +57,7 @@
                 <h3>Adicionar Serviço</h3>
                 <div class="form-grid">
                     <label for="servico_id">Serviço Padrão:</label>
-                    <select name="servico_id" id="servico_id">
+                    <select name="servico_id" id="servico_id" required>
                         <option value="" disabled selected>-- Selecione um serviço --</option>
                         {% for servico in catalogo_servicos %}
                             <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
@@ -76,10 +76,10 @@
                 <h3>Adicionar Produto do Estoque</h3>
                 <div class="form-grid">
                      <label for="estoque_item_id">Produto:</label>
-                     <select name="estoque_item_id" id="estoque_item_id">
+                     <select name="estoque_item_id" id="estoque_item_id" required>
                          <option value="" disabled selected>-- Selecione um produto --</option>
                          {% for item in estoque_disponivel %}
-                            <option value="{{ item.id }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
+                            <option value="{{ item.id }}" data-quantidade="{{ item.quantidade }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
                          {% endfor %}
                          <option value="novo-produto" class="option-new">[ + Adicionar Novo Produto ao Estoque ]</option>
                      </select>
@@ -137,7 +137,21 @@
                 {% for produto in produtos_orcamento %}
                 <tr>
                     <td>{{ produto.nome }}</td>
-                    <td>{{ produto.quantidade_usada }}</td>
+                    <td class="quantity-control-cell">
+    <div class="quantity-control">
+        <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
+            <input type="hidden" name="action" value="decrement">
+            <button type="submit" class="quantity-btn" {% if produto.quantidade_usada <= 1 %}disabled{% endif %}>-</button>
+        </form>
+
+        <span>{{ produto.quantidade_usada }}</span>
+
+        <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
+            <input type="hidden" name="action" value="increment">
+            <button type="submit" class="quantity-btn" {% if produto.estoque_disponivel <= 0 %}disabled{% endif %}>+</button>
+        </form>
+    </div>
+</td>
                     <td>R$ {{ "%.2f"|format(produto.valor_cobrado_unidade) }}</td>
                     <td class="actions-cell">
                         <form class="delete-form" action="{{ url_for('main.excluir_produto_orcamento', item_id=produto.id) }}" method="POST">
@@ -275,46 +289,156 @@
         </div>
     </div>
 
-    <!-- SCRIPT ATUALIZADO PARA CONTROLAR OS MODAIS -->
     <script>
-        // Funções para abrir/fechar modais
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('is-active');
-        }
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('is-active');
-        }
+    // Funções para abrir/fechar modais
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('is-active');
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('is-active');
+    }
 
-        // Lógica para os menus de seleção abrirem os modais
-        document.addEventListener('DOMContentLoaded', function() {
-            const servicoSelect = document.getElementById('servico_id');
-            const produtoSelect = document.getElementById('estoque_item_id');
+    // Lógica que roda após a página estar completamente carregada
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Seletores dos elementos ---
+        const servicoSelect = document.getElementById('servico_id');
+        const produtoSelect = document.getElementById('estoque_item_id');
+        const quantidadeInput = document.getElementById('quantidade_usada');
 
-            servicoSelect.addEventListener('change', function() {
-                if (this.value === 'novo-servico') {
-                    openModal('modal-novo-servico');
-                    // Reseta o select para a opção padrão
-                    this.selectedIndex = 0;
-                }
-            });
-
-            produtoSelect.addEventListener('change', function() {
-                if (this.value === 'novo-produto') {
-                    openModal('modal-novo-produto');
-                    // Reseta o select para a opção padrão
-                    this.selectedIndex = 0;
-                }
-            });
+        // --- Event Listener para o Select de SERVIÇOS ---
+        servicoSelect.addEventListener('change', function() {
+            if (this.value === 'novo-servico') {
+                openModal('modal-novo-servico');
+                this.selectedIndex = 0;
+            }
         });
 
-        // Script antigo para o recibo
-        const urlParams = new URLSearchParams(window.location.search);
-        const reciboGeradoFilename = urlParams.get('recibo_gerado');
-        if (reciboGeradoFilename) {
-            const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
-            window.open(reciboUrl, '_blank');
-            window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
+        // --- Event Listener UNIFICADO para o Select de PRODUTOS ---
+        produtoSelect.addEventListener('change', function() {
+            // Lógica 1: Checa se o usuário quer criar um novo produto
+            if (this.value === 'novo-produto') {
+                openModal('modal-novo-produto');
+                this.selectedIndex = 0;
+                quantidadeInput.removeAttribute('max');
+                quantidadeInput.value = 1;
+                return; // Sai da função para não executar o resto
+            }
+
+            // Lógica 2: Limita a quantidade de acordo com o estoque
+            const selectedOption = this.options[this.selectedIndex];
+            const maxQuantidade = selectedOption.getAttribute('data-quantidade');
+
+            if (maxQuantidade) {
+                quantidadeInput.max = maxQuantidade;
+                quantidadeInput.value = 1;
+                // Limpa qualquer validação customizada anterior ao trocar de item
+                quantidadeInput.setCustomValidity('');
+            } else {
+                quantidadeInput.removeAttribute('max');
+            }
+        });
+
+        // --- LÓGICA PARA MENSAGEM DE ERRO PERSONALIZADA ---
+        quantidadeInput.addEventListener('input', function() {
+            // Converte os valores para número para garantir a comparação correta
+            const valorAtual = parseInt(this.value, 10);
+            const maximoPermitido = parseInt(this.max, 10);
+
+            // Se o atributo 'max' estiver definido e o valor atual for maior que o permitido
+            if (this.max && valorAtual > maximoPermitido) {
+                // Define a mensagem de erro personalizada
+                this.setCustomValidity(`Só existe(m) ${this.max} unidade(s) deste produto em estoque.`);
+                // Opcional: reporta a validade para o navegador mostrar o erro imediatamente
+                this.reportValidity();
+            } else {
+                // Se o valor for válido, LIMPA a mensagem de erro. Este passo é crucial!
+                this.setCustomValidity('');
+            }
+        });
+    });
+
+    // Script para abrir o PDF do recibo
+    const urlParams = new URLSearchParams(window.location.search);
+    const reciboGeradoFilename = urlParams.get('recibo_gerado');
+    if (reciboGeradoFilename) {
+        const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
+        window.open(reciboUrl, '_blank');
+        window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
+    }
+</script>
+
+{% if prompt_update %}
+<div id="modal-confirmar-update" class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content card">
+
+        {% if prompt_update.type == 'servico' %}
+            <form action="{{ url_for('main.editar_servico', servico_id=prompt_update.existing_item.id) }}" method="POST">
+                <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                    <h2>Atualizar Serviço Existente?</h2>
+                </div>
+                <p>
+                    O serviço <strong>"{{ prompt_update.existing_item.nome }}"</strong> já existe no catálogo com o preço de R$ {{ "%.2f"|format(prompt_update.existing_item.preco_sugerido) }}.
+                </p>
+                <p>
+                    Você deseja atualizá-lo para o novo preço de <strong>R$ {{ "%.2f"|format(prompt_update.new_data.preco_sugerido) }}</strong>?
+                </p>
+
+                <input type="hidden" name="nome" value="{{ prompt_update.existing_item.nome }}">
+                <input type="hidden" name="preco_sugerido" value="{{ prompt_update.new_data.preco_sugerido }}">
+                 <input type="hidden" name="source_os_id" value="{{ os.id }}">
+
+                <hr>
+                <div class="actions-cell">
+                    <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="button--secondary">Não, Cancelar</a>
+                    <button type="submit" class="button--primary">Sim, Atualizar</button>
+                </div>
+            </form>
+
+        {% elif prompt_update.type == 'produto' %}
+            <form action="{{ url_for('main.editar_item_estoque', item_id=prompt_update.existing_item.id) }}" method="POST">
+                <div class="page-header" style="border-bottom: none; padding-bottom: 0;">
+                    <h2>Atualizar Produto Existente?</h2>
+                </div>
+                <p>
+                    O produto <strong>"{{ prompt_update.existing_item.nome }}"</strong> já existe no estoque com o preço de R$ {{ "%.2f"|format(prompt_update.existing_item.preco_venda) }}.
+                </p>
+                <p>
+                    Você deseja atualizá-lo com os novos dados?<br>
+                    <strong>Novo Preço:</strong> R$ {{ "%.2f"|format(prompt_update.new_data.preco_venda) }}<br>
+                    <strong>Nova Descrição:</strong> {{ prompt_update.new_data.descricao }}
+                </p>
+                <p class="info-banner" style="padding-top: 10px;">
+                    A quantidade que você tentou adicionar ({{ prompt_update.new_data.quantidade_a_adicionar }}) <strong>não</strong> será somada. Para ajustar o estoque, use a página "Estoque".
+                </p>
+
+                <input type="hidden" name="nome" value="{{ prompt_update.existing_item.nome }}">
+                 <input type="hidden" name="source_os_id" value="{{ os.id }}">
+                <input type="hidden" name="preco_venda" value="{{ prompt_update.new_data.preco_venda }}">
+                <input type="hidden" name="descricao" value="{{ prompt_update.new_data.descricao }}">
+                <input type="hidden" name="quantidade" value="{{ prompt_update.existing_item.quantidade }}">
+
+                <hr>
+                <div class="actions-cell">
+                    <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="button--secondary">Não, Cancelar</a>
+                    <button type="submit" class="button--primary">Sim, Atualizar</button>
+                </div>
+            </form>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+<script>
+    // Lógica para abrir o modal de confirmação automaticamente
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalUpdate = document.getElementById('modal-confirmar-update');
+        if (modalUpdate) {
+            // A classe 'is-active' já é adicionada pelo Jinja2,
+            // mas podemos garantir que ela está lá.
+            modalUpdate.classList.add('is-active');
         }
-    </script>
+    });
+</script>
 {% endblock %}
 

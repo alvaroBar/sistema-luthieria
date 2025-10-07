@@ -26,12 +26,13 @@ def admin_required(f):
     return decorated_function
 
 
-# --- FUNÇÃO DE AJUDA PARA O RECIBO (CORRIGIDA) ---
 def gerar_e_salvar_recibo(os_id):
     conn = db.get_db_connection()
+    # Adicionamos 'os.status' à consulta para saber se foi entregue ou cancelado
     query = """
-        SELECT 
+        SELECT
             os.id as os_id,
+            os.status as os_status,
             cl.nome as cliente_nome,
             cl.celular_whatsapp,
             cl.cpf as cliente_cpf,
@@ -62,7 +63,7 @@ def gerar_e_salvar_recibo(os_id):
     except FileNotFoundError:
         logo_data_uri = None
 
-    # CORREÇÃO AQUI: Passa a variável 'recibo' para o template
+    # O objeto 'dados_recibo' agora contém o status, que será usado pelo template
     html_renderizado = render_template('recibo_entrega_pdf.html',
                                        recibo=dados_recibo,
                                        luthier=luthier_info,
@@ -294,22 +295,83 @@ def listar_servicos():
 @main_routes.route('/servicos/novo', methods=['GET', 'POST'])
 @login_required
 def novo_servico():
-    if request.method == 'POST':
-        nome = request.form['nome']
-        preco_sugerido = request.form['preco_sugerido']
+    if request.method == 'GET':
+        return render_template('novo_servico.html')
 
-        conn = db.get_db_connection()
+    nome = request.form['nome']
+    preco_sugerido = request.form['preco_sugerido']
+    conn = db.get_db_connection()
+    source_os_id = request.form.get('source_os_id')
+
+    try:
         conn.execute('INSERT INTO servicos (nome, preco_sugerido) VALUES (?, ?)', (nome, preco_sugerido))
         conn.commit()
+        flash(f"Serviço '{nome}' criado com sucesso!", "success")
+
+
+    except sqlite3.IntegrityError:
+
+        # --- LÓGICA DE ATUALIZAÇÃO ---
+
+        # Converte o preço para float, com segurança
+
+        try:
+
+            preco_sugerido_float = float(request.form.get('preco_sugerido', 0))
+
+        except (ValueError, TypeError):
+
+            preco_sugerido_float = 0.0
+
+        existing_item = conn.execute('SELECT * FROM servicos WHERE nome = ?', (nome,)).fetchone()
+
         conn.close()
 
-        # Verifica se o formulário foi enviado a partir de uma OS
-        source_os_id = request.form.get('source_os_id')
-        if source_os_id:
-            return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+        prompt_update = {
 
-        return redirect(url_for('main.listar_servicos'))
-    return render_template('novo_servico.html')
+            "type": "servico",
+
+            "existing_item": dict(existing_item),
+
+            "new_data": {"preco_sugerido": preco_sugerido_float}  # <-- Passa o float
+
+        }
+
+        # Se a requisição veio de uma OS, recarregamos a página da OS com o modal de confirmação
+        if source_os_id:
+            # Re-busca todos os dados necessários para a página detalhe_os
+            os_data = db.get_os_completa_por_id(source_os_id)
+            # ... (toda a lógica de recarregar os dados da OS que já tínhamos)
+            itens_orcamento = db.get_itens_orcamento_por_os(source_os_id)
+            produtos_orcamento = db.get_produtos_orcamento_por_os(source_os_id)
+            catalogo_servicos = db.get_todos_servicos()
+            estoque_disponivel = db.get_estoque_disponivel()
+            pagamentos = db.get_pagamentos_por_os(source_os_id)
+            total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
+            total_produtos = sum(
+                prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
+            total_orcamento = total_servicos + total_produtos
+            total_pago = sum(pg['valor_pago'] for pg in pagamentos)
+
+            return render_template('detalhe_os.html',
+                                   os=os_data, itens_orcamento=itens_orcamento,
+                                   produtos_orcamento=produtos_orcamento, catalogo_servicos=catalogo_servicos,
+                                   estoque_disponivel=estoque_disponivel, total_orcamento=total_orcamento,
+                                   pagamentos=pagamentos, total_pago=total_pago,
+                                   prompt_update=prompt_update)  # <-- Passamos os dados para o modal
+        else:
+            # Se veio da página de cadastro, poderíamos renderizar um modal lá também (lógica a ser criada)
+            flash(f"Erro: Já existe um serviço cadastrado com o nome '{nome}'.", "error")
+            return redirect(url_for('main.listar_servicos'))
+
+    finally:
+        if conn:
+            conn.close()
+
+    if source_os_id:
+        return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+
+    return redirect(url_for('main.listar_servicos'))
 
 
 @main_routes.route('/servicos/<int:servico_id>/editar', methods=['GET', 'POST'])
@@ -322,7 +384,15 @@ def editar_servico(servico_id):
                      (request.form['nome'], request.form['preco_sugerido'], servico_id))
         conn.commit()
         conn.close()
-        return redirect(url_for('main.listar_servicos'))
+
+        # --- LÓGICA DE REDIRECIONAMENTO ADICIONADA ---
+        source_os_id = request.form.get('source_os_id')
+        if source_os_id:
+            flash("Serviço atualizado com sucesso!", "success")
+            return redirect(url_for('main.detalhe_os', os_id=source_os_id))
+
+        return redirect(url_for('main.listar_servicos'))  # Redirecionamento padrão
+
     conn.close()
     return render_template('editar_servico.html', servico=servico)
 
@@ -545,7 +615,7 @@ def detalhe_os(os_id):
     pagamentos = conn.execute('SELECT * FROM pagamentos WHERE ordem_servico_id = ? ORDER BY data_pagamento DESC',
                               (os_id,)).fetchall()
     produtos_orcamento = conn.execute(
-        "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
+        "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome, ei.quantidade as estoque_disponivel FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
         (os_id,)).fetchall()
     estoque_disponivel = conn.execute('SELECT * FROM estoque_itens WHERE quantidade > 0 ORDER BY nome').fetchall()
     conn.close()
@@ -602,16 +672,29 @@ def excluir_item_orcamento(item_id):
 def add_produto_orcamento(os_id):
     estoque_item_id = request.form['estoque_item_id']
     quantidade_usada = int(request.form.get('quantidade_usada', 1))
+
     conn = db.get_db_connection()
     item_estoque = conn.execute('SELECT * FROM estoque_itens WHERE id = ?', (estoque_item_id,)).fetchone()
-    if item_estoque and quantidade_usada > 0 and item_estoque['quantidade'] >= quantidade_usada:
-        conn.execute('INSERT INTO orcamento_produtos (ordem_servico_id, estoque_item_id, quantidade_usada, valor_cobrado_unidade) VALUES (?, ?, ?, ?)',
-                     (os_id, estoque_item_id, quantidade_usada, item_estoque['preco_venda']))
+
+    # --- NOVA VERIFICAÇÃO DE ESTOQUE ---
+    if item_estoque and quantidade_usada > item_estoque['quantidade']:
+        conn.close()
+        flash(
+            f"Erro: Não há estoque suficiente para o produto '{item_estoque['nome']}'. Disponível: {item_estoque['quantidade']}.",
+            "error")
+        return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
+    # --- FIM DA VERIFICAÇÃO ---
+
+    if item_estoque and quantidade_usada > 0:
+        conn.execute(
+            'INSERT INTO orcamento_produtos (ordem_servico_id, estoque_item_id, quantidade_usada, valor_cobrado_unidade) VALUES (?, ?, ?, ?)',
+            (os_id, estoque_item_id, quantidade_usada, item_estoque['preco_venda']))
+
         nova_quantidade = item_estoque['quantidade'] - quantidade_usada
         conn.execute('UPDATE estoque_itens SET quantidade = ? WHERE id = ?', (nova_quantidade, estoque_item_id))
         conn.commit()
+
     conn.close()
-    # CORREÇÃO: Adiciona a âncora
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
@@ -661,7 +744,7 @@ def gerar_os_pdf(os_id):
 
     # Busca os produtos do orçamento (esta linha já existia, mas agora vamos usá-la)
     produtos_orcamento = conn.execute(
-        "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
+        "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome, ei.quantidade as estoque_disponivel FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
         (os_id,)).fetchall()
     conn.close()
 
@@ -697,7 +780,52 @@ def gerar_os_pdf(os_id):
     return response
 
 
-# --- ROTA DE ATUALIZAÇÃO DE STATUS (CORRIGIDA) ---
+# Em app/routes.py
+
+@main_routes.route('/orcamento/produto/<int:item_id>/atualizar_quantidade', methods=['POST'])
+@login_required
+def atualizar_quantidade_produto(item_id):
+    action = request.form.get('action')  # 'increment' ou 'decrement'
+    conn = db.get_db_connection()
+
+    # Busca o item do orçamento para saber a OS e o item de estoque
+    item_orcamento = conn.execute('SELECT * FROM orcamento_produtos WHERE id = ?', (item_id,)).fetchone()
+    if not item_orcamento:
+        flash("Item do orçamento não encontrado.", "error")
+        conn.close()
+        return redirect(request.referrer or url_for('main.index'))
+
+    os_id = item_orcamento['ordem_servico_id']
+    estoque_item_id = item_orcamento['estoque_item_id']
+
+    if action == 'increment':
+        # Verifica se há estoque para adicionar mais um
+        item_estoque = conn.execute('SELECT quantidade FROM estoque_itens WHERE id = ?', (estoque_item_id,)).fetchone()
+        if item_estoque and item_estoque['quantidade'] > 0:
+            # Aumenta a quantidade no orçamento
+            conn.execute('UPDATE orcamento_produtos SET quantidade_usada = quantidade_usada + 1 WHERE id = ?',
+                         (item_id,))
+            # Diminui a quantidade no estoque
+            conn.execute('UPDATE estoque_itens SET quantidade = quantidade - 1 WHERE id = ?', (estoque_item_id,))
+            conn.commit()
+        else:
+            flash("Não há mais estoque disponível para este produto.", "error")
+
+    elif action == 'decrement':
+        # Verifica se a quantidade é maior que 1 para poder diminuir
+        if item_orcamento['quantidade_usada'] > 1:
+            # Diminui a quantidade no orçamento
+            conn.execute('UPDATE orcamento_produtos SET quantidade_usada = quantidade_usada - 1 WHERE id = ?',
+                         (item_id,))
+            # Aumenta (devolve) a quantidade no estoque
+            conn.execute('UPDATE estoque_itens SET quantidade = quantidade + 1 WHERE id = ?', (estoque_item_id,))
+            conn.commit()
+
+    conn.close()
+    return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
+
+
+# --- ROTA DE ATUALIZAÇÃO DE STATUS (ATUALIZADA) ---
 @main_routes.route('/os/<int:os_id>/atualizar_status', methods=['POST'])
 @login_required
 def atualizar_status(os_id):
@@ -707,8 +835,8 @@ def atualizar_status(os_id):
     conn.commit()
     conn.close()
 
-    # CORREÇÃO AQUI: A lógica de redirecionamento agora está correta
-    if novo_status == 'Entregue':
+    # Agora, se o status for 'Entregue' OU 'Cancelado', um recibo será gerado
+    if novo_status == 'Entregue' or novo_status == 'Cancelado':
         nome_arquivo = gerar_e_salvar_recibo(os_id)
         # Redireciona de volta para 'detalhe_os' com o nome do arquivo na URL
         return redirect(url_for('main.detalhe_os', os_id=os_id, recibo_gerado=nome_arquivo))
@@ -734,25 +862,89 @@ def listar_estoque():
 @main_routes.route('/estoque/novo', methods=['GET', 'POST'])
 @login_required
 def novo_item_estoque():
-    if request.method == 'POST':
-        nome = request.form['nome']
-        descricao = request.form['descricao']
-        quantidade = request.form['quantidade']
-        preco_venda = request.form['preco_venda']
+    if request.method == 'GET':
+        return render_template('novo_item_estoque.html')
 
-        conn = db.get_db_connection()
+    nome = request.form['nome']
+    descricao = request.form.get('descricao', '')
+    quantidade = request.form['quantidade']
+    preco_venda = request.form['preco_venda']
+    conn = db.get_db_connection()
+    source_os_id = request.form.get('source_os_id')
+
+    try:
         conn.execute('INSERT INTO estoque_itens (nome, descricao, quantidade, preco_venda) VALUES (?, ?, ?, ?)',
                      (nome, descricao, quantidade, preco_venda))
         conn.commit()
+        flash(f"Produto '{nome}' adicionado ao estoque com sucesso!", "success")
+
+
+    except sqlite3.IntegrityError:
+
+        # --- LÓGICA DE ATUALIZAÇÃO ---
+
+        try:
+
+            preco_venda_float = float(request.form.get('preco_venda', 0))
+
+        except (ValueError, TypeError):
+
+            preco_venda_float = 0.0
+
+        existing_item = conn.execute('SELECT * FROM estoque_itens WHERE nome = ?', (nome,)).fetchone()
+
         conn.close()
 
-        # Verifica se o formulário foi enviado a partir de uma OS
-        source_os_id = request.form.get('source_os_id')
-        if source_os_id:
-            return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+        prompt_update = {
 
-        return redirect(url_for('main.listar_estoque'))
-    return render_template('novo_item_estoque.html')
+            "type": "produto",
+
+            "existing_item": dict(existing_item),
+
+            "new_data": {
+
+                "descricao": descricao,
+
+                "preco_venda": preco_venda_float,  # <-- Passa o float
+
+                "quantidade_a_adicionar": quantidade
+
+            }
+
+        }
+
+        if source_os_id:
+            os_data = db.get_os_completa_por_id(source_os_id)
+            # ... (lógica de recarregar os dados da OS)
+            itens_orcamento = db.get_itens_orcamento_por_os(source_os_id)
+            produtos_orcamento = db.get_produtos_orcamento_por_os(source_os_id)
+            catalogo_servicos = db.get_todos_servicos()
+            estoque_disponivel = db.get_estoque_disponivel()
+            pagamentos = db.get_pagamentos_por_os(source_os_id)
+            total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
+            total_produtos = sum(
+                prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
+            total_orcamento = total_servicos + total_produtos
+            total_pago = sum(pg['valor_pago'] for pg in pagamentos)
+
+            return render_template('detalhe_os.html',
+                                   os=os_data, itens_orcamento=itens_orcamento,
+                                   produtos_orcamento=produtos_orcamento, catalogo_servicos=catalogo_servicos,
+                                   estoque_disponivel=estoque_disponivel, total_orcamento=total_orcamento,
+                                   pagamentos=pagamentos, total_pago=total_pago,
+                                   prompt_update=prompt_update)
+        else:
+            flash(f"Erro: Já existe um produto no estoque com o nome '{nome}'.", "error")
+            return redirect(url_for('main.listar_estoque'))
+
+    finally:
+        if conn:
+            conn.close()
+
+    if source_os_id:
+        return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
+
+    return redirect(url_for('main.listar_estoque'))
 
 
 @main_routes.route('/estoque/<int:item_id>/editar', methods=['GET', 'POST'])
@@ -769,7 +961,15 @@ def editar_item_estoque(item_id):
                      (nome, descricao, quantidade, preco_venda, item_id))
         conn.commit()
         conn.close()
-        return redirect(url_for('main.listar_estoque'))
+
+        # --- LÓGICA DE REDIRECIONAMENTO ADICIONADA ---
+        source_os_id = request.form.get('source_os_id')
+        if source_os_id:
+            flash("Produto atualizado com sucesso!", "success")
+            return redirect(url_for('main.detalhe_os', os_id=source_os_id))
+
+        return redirect(url_for('main.listar_estoque'))  # Redirecionamento padrão
+
     conn.close()
     return render_template('editar_item_estoque.html', item=item)
 
@@ -832,35 +1032,52 @@ def editar_info_os(os_id):
 @main_routes.route('/relatorios', methods=['GET', 'POST'])
 @login_required
 def relatorios():
+    conn = db.get_db_connection()
     dados_relatorio = None
-    data_inicio = request.form.get('data_inicio')
-    data_fim = request.form.get('data_fim')
 
-    if request.method == 'POST' and data_inicio and data_fim:
-        conn = db.get_db_connection()
+    # --- LÓGICA ADICIONADA AQUI ---
+    # Busca a data mínima e máxima de atividade no banco de dados
+    # para limitar o calendário.
+    query_datas = """
+        SELECT MIN(data) as min_data, MAX(data) as max_data
+        FROM (
+            SELECT data_entrada as data FROM ordens_servico
+            UNION ALL
+            SELECT data_pagamento as data FROM pagamentos
+        )
+    """
+    limites_data = conn.execute(query_datas).fetchone()
+    # --- FIM DA LÓGICA ADICIONADA ---
 
-        # Query para somar todos os pagamentos dentro do período
-        total_faturado = conn.execute(
-            "SELECT SUM(valor_pago) as total FROM pagamentos WHERE data_pagamento BETWEEN ? AND ?",
-            (data_inicio, data_fim)
-        ).fetchone()['total']
+    if request.method == 'POST':
+        data_inicio = request.form.get('data_inicio')
+        data_fim = request.form.get('data_fim')
 
-        # Query para contar Ordens de Serviço concluídas no período
-        os_concluidas = conn.execute(
-            "SELECT COUNT(id) as count FROM ordens_servico WHERE status = 'Entregue' AND data_entrada BETWEEN ? AND ?",
-            (data_inicio, data_fim)
-        ).fetchone()['count']
+        if data_inicio and data_fim:
+            total_faturado = conn.execute(
+                "SELECT SUM(valor_pago) as total FROM pagamentos WHERE data_pagamento BETWEEN ? AND ?",
+                (data_inicio, data_fim)
+            ).fetchone()['total']
 
-        conn.close()
+            os_concluidas = conn.execute(
+                "SELECT COUNT(id) as count FROM ordens_servico WHERE status = 'Entregue' AND data_entrada BETWEEN ? AND ?",
+                (data_inicio, data_fim)
+            ).fetchone()['count']
 
-        dados_relatorio = {
-            "total_faturado": total_faturado or 0,
-            "os_concluidas": os_concluidas or 0,
-            "data_inicio": data_inicio,
-            "data_fim": data_fim
-        }
+            dados_relatorio = {
+                "total_faturado": total_faturado or 0,
+                "os_concluidas": os_concluidas or 0,
+                "data_inicio": data_inicio,
+                "data_fim": data_fim
+            }
 
-    return render_template('relatorios.html', relatorio=dados_relatorio)
+    conn.close()
+
+    # Passamos os limites de data para o template
+    return render_template('relatorios.html',
+                           relatorio=dados_relatorio,
+                           min_data_disponivel=limites_data['min_data'],
+                           max_data_disponivel=limites_data['max_data'])
 
 # Adicione esta nova rota no final do arquivo
 @main_routes.route('/shutdown')

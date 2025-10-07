@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema Luthier{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -22,7 +23,7 @@
             <nav class="global-nav">
                 <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
                 <a href="{{ url_for('main.listar_clientes') }}" class="nav-link {% if 'cliente' in request.endpoint %}active{% endif %}">Clientes</a>
-                <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if 'servico' in request.endpoint %}active{% endif %}">Catálogo</a>
+                <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if 'servico' in request.endpoint %}active{% endif %}">Serviços</a>
                 <a href="{{ url_for('main.listar_estoque') }}" class="nav-link {% if 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
                 <a href="{{ url_for('main.relatorios') }}" class="nav-link {% if 'relatorios' in request.endpoint %}active{% endif %}">Relatórios</a>
                 <a href="{{ url_for('main.listar_arquivadas') }}" class="nav-link {% if 'arquivada' in request.endpoint %}active{% endif %}">Arquivados</a>
@@ -101,6 +102,6 @@
         })();
     </script>
     {% endif %}
-
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 </html>
