@@ -40,8 +40,13 @@
                         <label for="com_case">Com Case</label>
                     </div>
 
-                    <label for="acessorios_obs" class="full-width">Outros Acessórios / Observações:</label>
-                    <input type="text" id="acessorios_obs" name="acessorios_obs" class="full-width" placeholder="alavanca, correia, etc." value="Cliente deixou ">
+                    <div class="form-group full-width" style="margin-top: 10px;">
+    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="toggle_outros_acessorios" style="width: auto;">
+        <label for="toggle_outros_acessorios">O cliente deixou outros itens (ex: captador, cordas, etc.)?</label>
+    </div>
+    <input type="text" id="acessorios_obs" name="acessorios_obs" class="full-width" placeholder="Descreva os itens aqui..." style="display: none; margin-top: 10px;">
+</div>
 
                     <!-- SEÇÃO DE PREVISÃO DE ENTREGA ATUALIZADA -->
                     <label for="prazo_dias">Prazo (em dias):</label>
@@ -68,61 +73,67 @@
 
     <!-- SCRIPT PARA CÁLCULO DE DATA E VALIDAÇÃO -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const prazoDiasInput = document.getElementById('prazo_dias');
-            const dataPrevisaoInput = document.getElementById('data_previsao_saida');
-            const form = document.getElementById('nova-os-form');
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- LÓGICA DAS DATAS ---
+        const prazoDiasInput = document.getElementById('prazo_dias');
+        const dataPrevisaoInput = document.getElementById('data_previsao_saida');
+        const form = document.getElementById('nova-os-form');
 
-            // Função para calcular e definir a data de previsão com base nos dias
-            function calcularDataPrevisao() {
-                const dias = parseInt(prazoDiasInput.value, 10);
-                if (!isNaN(dias) && dias >= 0) {
-                    const hoje = new Date();
-                    hoje.setDate(hoje.getDate() + dias);
-
-                    // Formata a data para YYYY-MM-DD
-                    const ano = hoje.getFullYear();
-                    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-                    const dia = String(hoje.getDate()).padStart(2, '0');
-
-                    dataPrevisaoInput.value = `${ano}-${mes}-${dia}`;
-                } else {
-                    dataPrevisaoInput.value = '';
-                }
+        function calcularDataPrevisao() {
+            const dias = parseInt(prazoDiasInput.value, 10);
+            if (!isNaN(dias) && dias >= 0) {
+                const hoje = new Date();
+                hoje.setDate(hoje.getDate() + dias);
+                const ano = hoje.getFullYear();
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                const dia = String(hoje.getDate()).padStart(2, '0');
+                dataPrevisaoInput.value = `${ano}-${mes}-${dia}`;
+            } else {
+                dataPrevisaoInput.value = '';
             }
+        }
 
-            // Função para calcular os dias com base na data selecionada
-            function calcularDias() {
-                if (dataPrevisaoInput.value) {
-                    const hoje = new Date();
-                    hoje.setHours(0, 0, 0, 0);
-
-                    const dataPrevisao = new Date(dataPrevisaoInput.value + 'T00:00:00');
-
-                    if (dataPrevisao >= hoje) {
-                        const diferencaEmMs = dataPrevisao.getTime() - hoje.getTime();
-                        const diferencaEmDias = Math.ceil(diferencaEmMs / (1000 * 60 * 60 * 24));
-                        prazoDiasInput.value = diferencaEmDias;
-                    } else {
-                        prazoDiasInput.value = '';
-                    }
+        function calcularDias() {
+            if (dataPrevisaoInput.value) {
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                const dataPrevisao = new Date(dataPrevisaoInput.value + 'T00:00:00');
+                if (dataPrevisao >= hoje) {
+                    const diferencaEmMs = dataPrevisao.getTime() - hoje.getTime();
+                    const diferencaEmDias = Math.ceil(diferencaEmMs / (1000 * 60 * 60 * 24));
+                    prazoDiasInput.value = diferencaEmDias;
                 } else {
                     prazoDiasInput.value = '';
                 }
+            } else {
+                prazoDiasInput.value = '';
             }
+        }
 
-            // Adiciona os "ouvintes" de eventos para sincronizar os campos
-            prazoDiasInput.addEventListener('input', calcularDataPrevisao);
-            dataPrevisaoInput.addEventListener('input', calcularDias);
+        prazoDiasInput.addEventListener('input', calcularDataPrevisao);
+        dataPrevisaoInput.addEventListener('input', calcularDias);
 
-            // Validação antes de enviar o formulário
-            form.addEventListener('submit', function(e) {
-                if (!prazoDiasInput.value && !dataPrevisaoInput.value) {
-                    e.preventDefault();
-                    alert("Por favor, informe o prazo em dias ou a data específica antes de abrir a OS.");
-                }
-            });
+        form.addEventListener('submit', function(e) {
+            if (!prazoDiasInput.value && !dataPrevisaoInput.value) {
+                e.preventDefault();
+                alert("Por favor, informe o prazo em dias ou a data específica antes de abrir a OS.");
+            }
         });
-    </script>
+
+        // --- LÓGICA PARA ACESSÓRIOS EXTRAS (MOVIDA PARA DENTRO) ---
+        const toggleCheckbox = document.getElementById('toggle_outros_acessorios');
+        const obsInput = document.getElementById('acessorios_obs');
+
+        toggleCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                obsInput.style.display = 'block';
+                obsInput.focus();
+            } else {
+                obsInput.style.display = 'none';
+                obsInput.value = '';
+            }
+        });
+    });
+</script>
 </body>
 </html>

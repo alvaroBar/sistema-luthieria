@@ -29,9 +29,8 @@
 <div class="container">
     <!-- CABEÇALHO DA PÁGINA -->
     <div class="page-header">
-        <div class="header-title">
-            <h1>Equipamentos de {{ cliente.nome }}</h1>
-            <p class="subtitle"><a href="{{ url_for('main.listar_clientes') }}">&larr; Voltar para a lista de clientes</a></p>
+        <div class="header-actions">
+            <a href="{{ url_for('main.listar_clientes') }}" class="action-button back-link">&larr; Voltar para Clientes</a>
         </div>
         <a id="btn-novo-equipamento-top" href="{{ url_for('main.novo_equipamento', cliente_id=cliente.id) }}" class="action-button"
            style="background-color: var(--cor-sucesso-botao);">&#43; Adicionar Equipamento</a>

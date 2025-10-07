@@ -97,6 +97,17 @@ main.container { padding-top: 20px; }
 .search-form { display: flex; gap: 10px; margin-bottom: 24px; }
 .search-form input { flex-grow: 1; }
 
+/* --- ESTILO PARA O BOTÃO VOLTAR -- */
+.back-link {
+    background-color: var(--cor-secundaria-botao);
+    font-size: 0.9em;
+    padding: 10px 16px;
+}
+.back-link:hover {
+    background-color: var(--cor-secundaria-botao);
+    opacity: 0.9;
+}
+
 /* --- BANNER DE INFORMAÇÃO --- */
 .info-banner { display: flex; align-items: center; gap: 12px; background-color: transparent; color: var(--cor-texto-secundario); padding: 0; margin-bottom: 24px; border: none; }
 .info-banner p { margin: 0; font-family: var(--fonte-corpo); line-height: 1.6; }

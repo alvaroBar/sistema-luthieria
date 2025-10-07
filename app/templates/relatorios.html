@@ -55,17 +55,28 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Configurações do calendário
-            const config = {
-                dateFormat: "Y-m-d", // Formato que o backend espera
+            // Define as configurações base para os calendários
+            const baseConfig = {
+                dateFormat: "Y-m-d", // Formato que o backend espera (YYYY-MM-DD)
+                altInput: true,      // Mostra um formato amigável para o usuário
+                altFormat: "d/m/Y",  // Formato amigável (DD/MM/YYYY)
                 minDate: "{{ min_data_disponivel }}",
                 maxDate: "{{ max_data_disponivel }}",
-                altInput: true, // Mostra um formato amigável para o usuário
-                altFormat: "d/m/Y", // Formato amigável (dia/mês/ano)
             };
 
-            // Aplica as configurações a todos os campos com a classe 'datepicker'
-            flatpickr(".datepicker", config);
+            // Inicializa o calendário de Data de Fim primeiro
+            const fimPicker = flatpickr("#data_fim", baseConfig);
+
+            // Inicializa o calendário de Data de Início, com a lógica de atualização
+            const inicioPicker = flatpickr("#data_inicio", {
+                ...baseConfig, // Usa as configurações base
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Quando a data de início muda, define a data mínima para o calendário de Data de Fim
+                    if (selectedDates[0]) {
+                        fimPicker.set('minDate', selectedDates[0]);
+                    }
+                }
+            });
         });
     </script>
 

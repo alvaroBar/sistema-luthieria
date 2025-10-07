@@ -1090,3 +1090,44 @@ def shutdown():
     os.kill(os.getpid(), signal.SIGINT)
     return 'Servidor está desligando...'
 
+# --- NOVAS ROTAS PARA GERENCIAMENTO DE PAGAMENTOS ---
+
+@main_routes.route('/pagamento/<int:pagamento_id>/editar', methods=['POST'])
+@login_required
+def editar_pagamento(pagamento_id):
+    conn = db.get_db_connection()
+    pagamento = conn.execute('SELECT ordem_servico_id FROM pagamentos WHERE id = ?', (pagamento_id,)).fetchone()
+    if not pagamento:
+        flash("Pagamento não encontrado.", "error")
+        conn.close()
+        return redirect(url_for('main.index'))
+    os_id = pagamento['ordem_servico_id']
+    if request.method == 'POST':
+        nova_data = request.form.get('data_pagamento')
+        novo_valor = request.form.get('valor_pago')
+        nova_forma = request.form.get('forma_pagamento')
+        conn.execute(
+            'UPDATE pagamentos SET data_pagamento = ?, valor_pago = ?, forma_pagamento = ? WHERE id = ?',
+            (nova_data, novo_valor, nova_forma, pagamento_id)
+        )
+        conn.commit()
+        flash("Pagamento atualizado com sucesso!", "success")
+    conn.close()
+    return redirect(url_for('main.detalhe_os', os_id=os_id))
+
+@main_routes.route('/pagamento/<int:pagamento_id>/excluir', methods=['POST'])
+@login_required
+def excluir_pagamento(pagamento_id):
+    conn = db.get_db_connection()
+    pagamento = conn.execute('SELECT ordem_servico_id FROM pagamentos WHERE id = ?', (pagamento_id,)).fetchone()
+    if not pagamento:
+        flash("Pagamento não encontrado.", "error")
+        conn.close()
+        return redirect(url_for('main.index'))
+    os_id = pagamento['ordem_servico_id']
+    conn.execute('DELETE FROM pagamentos WHERE id = ?', (pagamento_id,))
+    conn.commit()
+    conn.close()
+    flash("Pagamento excluído com sucesso.", "success")
+    return redirect(url_for('main.detalhe_os', os_id=os_id))
+
