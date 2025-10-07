@@ -15,11 +15,11 @@
         <form method="POST" class="form-grid" style="grid-template-columns: 1fr 1fr auto;">
             <div>
                 <label for="data_inicio">Data de Início:</label>
-                <input type="date" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio else '' }}" required>
+                <input type="text" class="datepicker" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio else '' }}" required>
             </div>
             <div>
                 <label for="data_fim">Data de Fim:</label>
-                <input type="date" id="data_fim" name="data_fim" value="{{ relatorio.data_fim if relatorio else '' }}" required>
+                <input type="text" class="datepicker" id="data_fim" name="data_fim" value="{{ relatorio.data_fim if relatorio else '' }}" required>
             </div>
             <div class="actions-cell" style="align-self: end;">
                 <button type="submit" class="button--primary">Gerar Relatório</button>
@@ -52,5 +52,22 @@
         </div>
     </div>
     {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurações do calendário
+            const config = {
+                dateFormat: "Y-m-d", // Formato que o backend espera
+                minDate: "{{ min_data_disponivel }}",
+                maxDate: "{{ max_data_disponivel }}",
+                altInput: true, // Mostra um formato amigável para o usuário
+                altFormat: "d/m/Y", // Formato amigável (dia/mês/ano)
+            };
+
+            // Aplica as configurações a todos os campos com a classe 'datepicker'
+            flatpickr(".datepicker", config);
+        });
+    </script>
+
 {% endblock %}
 

@@ -3,13 +3,22 @@
 import os
 import sys
 import shutil
-from datetime import timedelta  # <-- Importação necessária
+from datetime import timedelta, datetime
 from flask import Flask, session  # <-- 'session' adicionado aqui
 from flask_login import LoginManager
 
 # Variável global para o caminho dos dados do aplicativo
 APP_DATA_PATH = ''
 
+# --- FUNÇÃO DO FILTRO DE DATA ---
+def format_date_br(value, format='%d/%m/%Y'):
+    """Formata uma string de data YYYY-MM-DD para DD/MM/YYYY."""
+    try:
+        # Tenta converter a string para um objeto de data e depois formata
+        return datetime.strptime(value, '%Y-%m-%d').strftime(format)
+    except (ValueError, TypeError):
+        # Se a conversão falhar (ex: o valor é nulo ou já está em outro formato), retorna o valor original
+        return value
 
 def create_app():
     """
@@ -19,6 +28,7 @@ def create_app():
     global APP_DATA_PATH
 
     app = Flask(__name__, instance_relative_config=True)
+    app.jinja_env.filters['datebr'] = format_date_br
 
     # --- LÓGICA DE CAMINHOS PARA PROGRAM FILES E APPDATA ---
     if getattr(sys, 'frozen', False):

@@ -237,6 +237,55 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .move-down.show { transform: translateY(0); opacity: 1; }
 .move-down.hide { transform: translateY(-30px); opacity: 0; }
 
+/* Adicione no final do seu style.css */
+
+.quantity-control-cell {
+    padding: 6px 15px !important;
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-control span {
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+.quantity-control form {
+    margin: 0;
+}
+
+.quantity-btn {
+    font-family: var(--fonte-titulo);
+    font-weight: bold;
+    font-size: 1.2em;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--cor-borda);
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto-primario);
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.quantity-btn:hover:not(:disabled) {
+    background-color: var(--cor-primaria-botao);
+    color: white;
+    border-color: var(--cor-primaria-botao);
+}
+
+.quantity-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 
 
 /* --- ÍCONE DE GUITARRA --- */

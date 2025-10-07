@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo de Entrega - OS #{{ recibo.os_id }}</title>
+    <title>Recibo OS #{{ recibo.os_id }}</title>
     <style>
         @page { size: A4; margin: 1cm; }
         body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 8.5pt; color: #333; margin: 0; padding: 0; }
@@ -23,13 +23,17 @@
     </style>
 </head>
 <body>
-    <!-- PRIMEIRA VIA - CLIENTE -->
     <div class="recibo">
         <div class="recibo-header">
             {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="Logo da Oficina">{% endif %}
             <h1>{{ luthier.nome }}</h1>
             <p>{{ luthier.documento }} | {{ luthier.telefone }}</p>
-            <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via do Cliente)</h3>
+
+            {% if recibo.os_status == 'Entregue' %}
+                <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via do Cliente)</h3>
+            {% elif recibo.os_status == 'Cancelado' %}
+                <h3>RECIBO DE RETIRADA POR CANCELAMENTO - OS #{{ recibo.os_id }} (Via do Cliente)</h3>
+            {% endif %}
         </div>
 
         <h2>Dados do Cliente</h2>
@@ -43,7 +47,11 @@
            <strong>Série:</strong> {{ recibo.equipamento_serie or 'N/A' }}</p>
 
         <p class="declaracao">
-            Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+            {% if recibo.os_status == 'Entregue' %}
+                Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+            {% elif recibo.os_status == 'Cancelado' %}
+                Declaro para os devidos fins que retirei o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, referente à Ordem de Serviço nº {{ recibo.os_id }}, que foi <strong>cancelada</strong>. Atesto que o equipamento foi inspecionado e se encontra no mesmo estado em que foi entregue na oficina.
+            {% endif %}
         </p>
 
         <div class="assinaturas">
@@ -58,13 +66,17 @@
 
     <p class="corte">-- &lt; corte aqui &gt; --</p>
 
-    <!-- SEGUNDA VIA - OFICINA -->
     <div class="recibo">
          <div class="recibo-header">
             {% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="Logo da Oficina">{% endif %}
             <h1>{{ luthier.nome }}</h1>
             <p>{{ luthier.documento }} | {{ luthier.telefone }}</p>
-            <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via da Oficina)</h3>
+
+            {% if recibo.os_status == 'Entregue' %}
+                <h3>RECIBO DE ENTREGA - OS #{{ recibo.os_id }} (Via da Oficina)</h3>
+            {% elif recibo.os_status == 'Cancelado' %}
+                <h3>RECIBO DE RETIRADA POR CANCELAMENTO - OS #{{ recibo.os_id }} (Via da Oficina)</h3>
+            {% endif %}
         </div>
 
         <h2>Dados do Cliente</h2>
@@ -78,7 +90,11 @@
            <strong>Série:</strong> {{ recibo.equipamento_serie or 'N/A' }}</p>
 
         <p class="declaracao">
-            Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+            {% if recibo.os_status == 'Entregue' %}
+                Declaro para os devidos fins que recebi o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, após a conclusão dos serviços referentes à Ordem de Serviço nº {{ recibo.os_id }}. Atesto que o equipamento foi inspecionado e se encontra em conformidade com o esperado.
+            {% elif recibo.os_status == 'Cancelado' %}
+                Declaro para os devidos fins que retirei o equipamento descrito acima na data de <strong>{{ data_entrega }}</strong>, referente à Ordem de Serviço nº {{ recibo.os_id }}, que foi <strong>cancelada</strong>. Atesto que o equipamento foi inspecionado e se encontra no mesmo estado em que foi entregue na oficina.
+            {% endif %}
         </p>
 
         <div class="assinaturas">
@@ -92,4 +108,3 @@
     </div>
 </body>
 </html>
-
