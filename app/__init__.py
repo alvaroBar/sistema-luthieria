@@ -4,7 +4,7 @@ import os
 import sys
 import shutil
 from datetime import timedelta, datetime
-from flask import Flask, session  # <-- 'session' adicionado aqui
+from flask import Flask, session, render_template  # <-- 'session' adicionado aqui
 from flask_login import LoginManager
 
 # Variável global para o caminho dos dados do aplicativo
@@ -88,5 +88,18 @@ def create_app():
     app.register_blueprint(routes.main_routes)
     from . import auth
     app.register_blueprint(auth.auth_bp)
+
+    # --- MANIPULADORES DE ERRO (ERROR HANDLERS) ---
+    @app.errorhandler(404)
+    def page_not_found(e):
+        # note that we set the 404 status explicitly
+        return render_template('404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        # note that we set the 500 status explicitly
+        return render_template('500.html'), 500
+
+    # --- FIM DOS MANIPULADORES DE ERRO ---
 
     return app

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Página Não Encontrada{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <h1 style="font-size: 4em; margin: 0; color: var(--cor-primaria-botao);">404</h1>
+    <h2>Página Não Encontrada</h2>
+    <p class="subtitle" style="margin-top: 10px;">
+        O recurso que você está procurando não existe ou foi movido.
+    </p>
+    <hr style="margin: 30px 0;">
+    <a href="{{ url_for('main.index') }}" class="action-button button--primary">Voltar ao Início</a>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Erro Interno do Servidor{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <h1 style="font-size: 4em; margin: 0; color: var(--cor-perigo-botao);">500</h1>
+    <h2>Erro Interno do Servidor</h2>
+    <p class="subtitle" style="margin-top: 10px;">
+        Ocorreu um erro inesperado. Nossa equipe já foi notificada. <br>
+        Por favor, tente novamente mais tarde.
+    </p>
+    <hr style="margin: 30px 0;">
+    <a href="{{ url_for('main.index') }}" class="action-button button--primary">Voltar ao Início</a>
+</div>
+{% endblock %}

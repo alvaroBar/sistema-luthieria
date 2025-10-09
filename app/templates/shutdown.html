@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encerrando Servidor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--cor-fundo);
+        }
+        .message-box {
+            text-align: center;
+            padding: 40px;
+            background-color: var(--cor-fundo-card);
+            border-radius: var(--raio-borda-card);
+            box-shadow: var(--sombra-card);
+        }
+    </style>
+</head>
+<body>
+    <div class="message-box">
+        <h1>Servidor Encerrando...</h1>
+        <p class="subtitle">O programa foi finalizado com sucesso.</p>
+        <p>Você já pode fechar esta aba.</p>
+    </div>
+</body>
+</html>

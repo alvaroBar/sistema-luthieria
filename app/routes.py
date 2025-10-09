@@ -4,6 +4,7 @@ import base64
 import signal
 from datetime import date
 from functools import wraps
+from threading import Timer
 
 from flask import (Blueprint, render_template, request, url_for, redirect,
                    make_response, current_app, send_from_directory, flash)
@@ -1079,16 +1080,20 @@ def relatorios():
                            min_data_disponivel=limites_data['min_data'],
                            max_data_disponivel=limites_data['max_data'])
 
-# Adicione esta nova rota no final do arquivo
+# --- ROTA DE DESLIGAMENTO ---
 @main_routes.route('/shutdown')
 @login_required
+@admin_required
 def shutdown():
-    """Desliga o servidor de forma segura."""
-    print("Servidor recebendo ordem para desligar...")
-    # Envia um sinal de interrupção (como Ctrl+C) para o processo atual,
-    # fazendo com que o servidor Waitress encerre.
-    os.kill(os.getpid(), signal.SIGINT)
-    return 'Servidor está desligando...'
+    """Mostra uma página de despedida e desliga o servidor após um atraso."""
+
+    def do_shutdown():
+        print("Servidor recebendo ordem para desligar...")
+        os.kill(os.getpid(), signal.SIGINT)
+
+    Timer(1.0, do_shutdown).start()
+
+    return render_template('shutdown.html')
 
 # --- NOVAS ROTAS PARA GERENCIAMENTO DE PAGAMENTOS ---
 
@@ -1130,4 +1135,7 @@ def excluir_pagamento(pagamento_id):
     conn.close()
     flash("Pagamento excluído com sucesso.", "success")
     return redirect(url_for('main.detalhe_os', os_id=os_id))
+
+
+
 
