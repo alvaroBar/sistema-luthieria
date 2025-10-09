@@ -27,19 +27,14 @@ def admin_required(f):
     return decorated_function
 
 
+# --- FUNÇÃO DE AJUDA PARA O RECIBO (CORRIGIDA) ---
 def gerar_e_salvar_recibo(os_id):
     conn = db.get_db_connection()
-    # Adicionamos 'os.status' à consulta para saber se foi entregue ou cancelado
     query = """
         SELECT
-            os.id as os_id,
-            os.status as os_status,
-            cl.nome as cliente_nome,
-            cl.celular_whatsapp,
-            cl.cpf as cliente_cpf,
-            eq.tipo as equipamento_tipo,
-            eq.marca as equipamento_marca,
-            eq.modelo as equipamento_modelo,
+            os.id as os_id, os.status as os_status, cl.nome as cliente_nome,
+            cl.celular_whatsapp, cl.cpf as cliente_cpf, eq.tipo as equipamento_tipo,
+            eq.marca as equipamento_marca, eq.modelo as equipamento_modelo,
             eq.numero_serie as equipamento_serie
         FROM ordens_servico as os
         JOIN equipamentos as eq ON os.equipamento_id = eq.id
@@ -48,8 +43,13 @@ def gerar_e_salvar_recibo(os_id):
     """
     dados_recibo = conn.execute(query, (os_id,)).fetchone()
 
+    # Adiciona busca pelos itens do orçamento
+    itens_orcamento = db.get_itens_orcamento_por_os(os_id)
+    produtos_orcamento = db.get_produtos_orcamento_por_os(os_id)
+
+    conn.close()
+
     if not dados_recibo:
-        conn.close()
         return None
 
     luthier_info = {
@@ -64,12 +64,13 @@ def gerar_e_salvar_recibo(os_id):
     except FileNotFoundError:
         logo_data_uri = None
 
-    # O objeto 'dados_recibo' agora contém o status, que será usado pelo template
     html_renderizado = render_template('recibo_entrega_pdf.html',
                                        recibo=dados_recibo,
                                        luthier=luthier_info,
                                        data_entrega=date.today().strftime('%d/%m/%Y'),
-                                       logo_data_uri=logo_data_uri)
+                                       logo_data_uri=logo_data_uri,
+                                       itens_orcamento=itens_orcamento,
+                                       produtos_orcamento=produtos_orcamento)
 
     pdf = HTML(string=html_renderizado).write_pdf()
     nome_arquivo = f"recibo_os_{os_id}.pdf"
@@ -77,9 +78,12 @@ def gerar_e_salvar_recibo(os_id):
     with open(caminho_completo, 'wb') as f:
         f.write(pdf)
 
+    conn = db.get_db_connection()
     conn.execute('UPDATE ordens_servico SET caminho_recibo = ? WHERE id = ?', (nome_arquivo, os_id))
     conn.commit()
     conn.close()
+
+    # --- CORREÇÃO AQUI ---
     return nome_arquivo
 
 
@@ -674,18 +678,51 @@ def excluir_produto_orcamento(item_id):
     return redirect(url_for('main.index'))
 
 
+# --- ROTA DE ADICIONAR PAGAMENTO (ATUALIZADA) ---
 @main_routes.route('/os/<int:os_id>/add_pagamento', methods=['POST'])
 @login_required
 def add_pagamento(os_id):
-    valor_pago = request.form['valor_pago']
+    try:
+        valor_pago = float(request.form['valor_pago'])
+    except (ValueError, TypeError):
+        flash("Valor de pagamento inválido.", "error")
+        return redirect(url_for('main.detalhe_os', os_id=os_id))
+
     forma_pagamento = request.form['forma_pagamento']
     data_pagamento = date.today().strftime('%Y-%m-%d')
     conn = db.get_db_connection()
+
+    # --- VALIDAÇÃO DE PAGAMENTO MAIOR QUE O DEVIDO ---
+    # Calcula o saldo devedor atual
+    total_orcado_row = conn.execute(
+        """
+        SELECT 
+            (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = ?) +
+            (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = ?)
+        """, (os_id, os_id)).fetchone()
+    total_orcado = total_orcado_row[0] if total_orcado_row else 0
+
+    total_pago_row = conn.execute("SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = ?",
+                                  (os_id,)).fetchone()
+    total_pago = total_pago_row[0] if total_pago_row else 0
+
+    saldo_devedor = round(total_orcado - total_pago, 2)
+
+    # Se o valor pago for maior que o saldo devedor, impede o registro
+    if valor_pago > saldo_devedor:
+        conn.close()
+        flash(
+            f"O valor do pagamento (R$ {valor_pago:.2f}) não pode ser maior que o saldo devedor (R$ {saldo_devedor:.2f}).",
+            "error")
+        return redirect(url_for('main.detalhe_os', os_id=os_id))
+    # --- FIM DA VALIDAÇÃO ---
+
     conn.execute(
         'INSERT INTO pagamentos (ordem_servico_id, data_pagamento, valor_pago, forma_pagamento) VALUES (?, ?, ?, ?)',
         (os_id, data_pagamento, valor_pago, forma_pagamento))
     conn.commit()
     conn.close()
+    flash("Pagamento registrado com sucesso!", "success")
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
 
@@ -782,23 +819,53 @@ def atualizar_quantidade_produto(item_id):
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
-# --- ROTA DE ATUALIZAÇÃO DE STATUS (ATUALIZADA) ---
+# --- ROTA DE ATUALIZAÇÃO DE STATUS (CORRIGIDA PARA ABRIR NOVA ABA) ---
 @main_routes.route('/os/<int:os_id>/atualizar_status', methods=['POST'])
 @login_required
 def atualizar_status(os_id):
     novo_status = request.form['status']
     conn = db.get_db_connection()
+
+    # Lógica de validação para o status 'Entregue'
+    if novo_status == 'Entregue':
+        # Calcula o saldo devedor
+        itens_orcamento = db.get_itens_orcamento_por_os(os_id)
+        produtos_orcamento = db.get_produtos_orcamento_por_os(os_id)
+        pagamentos = db.get_pagamentos_por_os(os_id)
+        total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
+        total_produtos = sum(prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
+        total_orcamento = total_servicos + total_produtos
+        total_pago = sum(pg['valor_pago'] for pg in pagamentos)
+        saldo_devedor = round(total_orcamento - total_pago, 2)
+
+        if saldo_devedor > 0:
+            flash(f"Não é possível marcar como 'Entregue'. Ainda há um saldo devedor de R$ {saldo_devedor:.2f}.",
+                  "error")
+            conn.close()
+            return redirect(url_for('main.detalhe_os', os_id=os_id))
+
     conn.execute('UPDATE ordens_servico SET status = ? WHERE id = ?', (novo_status, os_id))
     conn.commit()
     conn.close()
 
-    # Agora, se o status for 'Entregue' OU 'Cancelado', um recibo será gerado
     if novo_status == 'Entregue' or novo_status == 'Cancelado':
         nome_arquivo = gerar_e_salvar_recibo(os_id)
-        # Redireciona de volta para 'detalhe_os' com o nome do arquivo na URL
-        return redirect(url_for('main.detalhe_os', os_id=os_id, recibo_gerado=nome_arquivo))
+
+        # Constrói as URLs que o script irá usar
+        recibo_url = url_for('main.servir_recibo', filename=nome_arquivo)
+        detalhe_url = url_for('main.detalhe_os', os_id=os_id)
+
+        # Retorna uma resposta HTML com um script que abre a nova aba e depois redireciona a aba atual
+        return f"""
+            <script>
+                window.open('{recibo_url}', '_blank');
+                window.location.href = '{detalhe_url}';
+            </script>
+            <p>Gerando recibo... Redirecionando de volta para a Ordem de Serviço.</p>
+        """
 
     return redirect(url_for('main.detalhe_os', os_id=os_id))
+
 
 
 # --- FUNÇÃO AUXILIAR PARA RECARREGAR DADOS DA OS (CORRIGIDA) ---

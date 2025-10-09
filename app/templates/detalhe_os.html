@@ -490,15 +490,6 @@
                 }
             {% endif %}
         });
-
-        // Script para abrir o PDF do recibo
-    const urlParams = new URLSearchParams(window.location.search);
-    const reciboGeradoFilename = urlParams.get('recibo_gerado');
-    if (reciboGeradoFilename) {
-        const reciboUrl = "{{ url_for('main.servir_recibo', filename='placeholder') }}".replace('placeholder', reciboGeradoFilename);
-        window.open(reciboUrl, '_blank');
-        window.history.replaceState({}, document.title, "{{ url_for('main.detalhe_os', os_id=os.id) }}");
-    }
     </script>
 {% endblock %}
 
