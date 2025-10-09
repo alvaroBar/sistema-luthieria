@@ -2,12 +2,12 @@ import sqlite3
 import os
 import base64
 import signal
-from datetime import date
+from datetime import date, timedelta
 from functools import wraps
 from threading import Timer
 
 from flask import (Blueprint, render_template, request, url_for, redirect,
-                   make_response, current_app, send_from_directory, flash)
+                   make_response, current_app, send_from_directory, flash, json)
 from flask_login import login_required, current_user
 from weasyprint import HTML
 from werkzeug.security import generate_password_hash
@@ -293,6 +293,7 @@ def listar_servicos():
     return render_template('servicos.html', servicos=servicos)
 
 
+# --- ROTA novo_servico ATUALIZADA ---
 @main_routes.route('/servicos/novo', methods=['GET', 'POST'])
 @login_required
 def novo_servico():
@@ -308,70 +309,25 @@ def novo_servico():
         conn.execute('INSERT INTO servicos (nome, preco_sugerido) VALUES (?, ?)', (nome, preco_sugerido))
         conn.commit()
         flash(f"Serviço '{nome}' criado com sucesso!", "success")
-
-
     except sqlite3.IntegrityError:
-
-        # --- LÓGICA DE ATUALIZAÇÃO ---
-
-        # Converte o preço para float, com segurança
-
-        try:
-
-            preco_sugerido_float = float(request.form.get('preco_sugerido', 0))
-
-        except (ValueError, TypeError):
-
-            preco_sugerido_float = 0.0
-
         existing_item = conn.execute('SELECT * FROM servicos WHERE nome = ?', (nome,)).fetchone()
-
-        conn.close()
-
-        prompt_update = {
-
+        conn.close() # Fecha a conexão antes de chamar a função auxiliar
+        duplicate_item_data = {
             "type": "servico",
-
-            "existing_item": dict(existing_item),
-
-            "new_data": {"preco_sugerido": preco_sugerido_float}  # <-- Passa o float
-
+            "item": dict(existing_item)
         }
-
-        # Se a requisição veio de uma OS, recarregamos a página da OS com o modal de confirmação
         if source_os_id:
-            # Re-busca todos os dados necessários para a página detalhe_os
-            os_data = db.get_os_completa_por_id(source_os_id)
-            # ... (toda a lógica de recarregar os dados da OS que já tínhamos)
-            itens_orcamento = db.get_itens_orcamento_por_os(source_os_id)
-            produtos_orcamento = db.get_produtos_orcamento_por_os(source_os_id)
-            catalogo_servicos = db.get_todos_servicos()
-            estoque_disponivel = db.get_estoque_disponivel()
-            pagamentos = db.get_pagamentos_por_os(source_os_id)
-            total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
-            total_produtos = sum(
-                prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
-            total_orcamento = total_servicos + total_produtos
-            total_pago = sum(pg['valor_pago'] for pg in pagamentos)
-
-            return render_template('detalhe_os.html',
-                                   os=os_data, itens_orcamento=itens_orcamento,
-                                   produtos_orcamento=produtos_orcamento, catalogo_servicos=catalogo_servicos,
-                                   estoque_disponivel=estoque_disponivel, total_orcamento=total_orcamento,
-                                   pagamentos=pagamentos, total_pago=total_pago,
-                                   prompt_update=prompt_update)  # <-- Passamos os dados para o modal
+            page_data = _get_os_page_data(int(source_os_id))
+            return render_template('detalhe_os.html', **page_data, duplicate_item_data=json.dumps(duplicate_item_data))
         else:
-            # Se veio da página de cadastro, poderíamos renderizar um modal lá também (lógica a ser criada)
             flash(f"Erro: Já existe um serviço cadastrado com o nome '{nome}'.", "error")
             return redirect(url_for('main.listar_servicos'))
-
     finally:
-        if conn:
-            conn.close()
+        if conn and not getattr(conn, 'closed', True):
+             conn.close()
 
     if source_os_id:
         return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
-
     return redirect(url_for('main.listar_servicos'))
 
 
@@ -845,6 +801,35 @@ def atualizar_status(os_id):
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
 
+# --- FUNÇÃO AUXILIAR PARA RECARREGAR DADOS DA OS (CORRIGIDA) ---
+def _get_os_page_data(os_id):
+    """Busca todos os dados necessários para renderizar a página detalhe_os."""
+    conn = db.get_db_connection()
+    os_data = db.get_os_completa_por_id(os_id)
+    itens_orcamento = db.get_itens_orcamento_por_os(os_id)
+
+    # CORREÇÃO AQUI: A query agora busca o 'estoque_disponivel'
+    produtos_orcamento = conn.execute(
+        "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome, ei.quantidade as estoque_disponivel FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
+        (os_id,)).fetchall()
+
+    catalogo_servicos = db.get_todos_servicos()
+    estoque_disponivel = db.get_estoque_disponivel()
+    pagamentos = db.get_pagamentos_por_os(os_id)
+    conn.close()  # Fecha a conexão aberta aqui
+
+    total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
+    total_produtos = sum(prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
+    total_orcamento = total_servicos + total_produtos
+    total_pago = sum(pg['valor_pago'] for pg in pagamentos)
+
+    return {
+        "os": os_data, "itens_orcamento": itens_orcamento, "produtos_orcamento": produtos_orcamento,
+        "catalogo_servicos": catalogo_servicos, "estoque_disponivel": estoque_disponivel,
+        "total_orcamento": total_orcamento, "pagamentos": pagamentos, "total_pago": total_pago
+    }
+
+
 @main_routes.route('/recibos/<path:filename>')
 @login_required
 def servir_recibo(filename):
@@ -860,6 +845,7 @@ def listar_estoque():
     return render_template('estoque.html', itens=itens)
 
 
+# --- ROTA novo_item_estoque ATUALIZADA ---
 @main_routes.route('/estoque/novo', methods=['GET', 'POST'])
 @login_required
 def novo_item_estoque():
@@ -878,73 +864,26 @@ def novo_item_estoque():
                      (nome, descricao, quantidade, preco_venda))
         conn.commit()
         flash(f"Produto '{nome}' adicionado ao estoque com sucesso!", "success")
-
-
     except sqlite3.IntegrityError:
-
-        # --- LÓGICA DE ATUALIZAÇÃO ---
-
-        try:
-
-            preco_venda_float = float(request.form.get('preco_venda', 0))
-
-        except (ValueError, TypeError):
-
-            preco_venda_float = 0.0
-
         existing_item = conn.execute('SELECT * FROM estoque_itens WHERE nome = ?', (nome,)).fetchone()
-
-        conn.close()
-
-        prompt_update = {
-
+        conn.close() # Fecha a conexão antes de chamar a função auxiliar
+        duplicate_item_data = {
             "type": "produto",
-
-            "existing_item": dict(existing_item),
-
-            "new_data": {
-
-                "descricao": descricao,
-
-                "preco_venda": preco_venda_float,  # <-- Passa o float
-
-                "quantidade_a_adicionar": quantidade
-
-            }
-
+            "item": dict(existing_item)
         }
-
         if source_os_id:
-            os_data = db.get_os_completa_por_id(source_os_id)
-            # ... (lógica de recarregar os dados da OS)
-            itens_orcamento = db.get_itens_orcamento_por_os(source_os_id)
-            produtos_orcamento = db.get_produtos_orcamento_por_os(source_os_id)
-            catalogo_servicos = db.get_todos_servicos()
-            estoque_disponivel = db.get_estoque_disponivel()
-            pagamentos = db.get_pagamentos_por_os(source_os_id)
-            total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
-            total_produtos = sum(
-                prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
-            total_orcamento = total_servicos + total_produtos
-            total_pago = sum(pg['valor_pago'] for pg in pagamentos)
-
-            return render_template('detalhe_os.html',
-                                   os=os_data, itens_orcamento=itens_orcamento,
-                                   produtos_orcamento=produtos_orcamento, catalogo_servicos=catalogo_servicos,
-                                   estoque_disponivel=estoque_disponivel, total_orcamento=total_orcamento,
-                                   pagamentos=pagamentos, total_pago=total_pago,
-                                   prompt_update=prompt_update)
+            # CORREÇÃO AQUI: Chamada com apenas 1 argumento
+            page_data = _get_os_page_data(int(source_os_id))
+            return render_template('detalhe_os.html', **page_data, duplicate_item_data=json.dumps(duplicate_item_data))
         else:
             flash(f"Erro: Já existe um produto no estoque com o nome '{nome}'.", "error")
             return redirect(url_for('main.listar_estoque'))
-
     finally:
-        if conn:
+        if conn and not getattr(conn, 'closed', True):
             conn.close()
 
     if source_os_id:
         return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
-
     return redirect(url_for('main.listar_estoque'))
 
 
@@ -1029,16 +968,14 @@ def editar_info_os(os_id):
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
 
-# --- NOVA ROTA PARA RELATÓRIOS ---
 @main_routes.route('/relatorios', methods=['GET', 'POST'])
 @login_required
 def relatorios():
     conn = db.get_db_connection()
     dados_relatorio = None
+    produtos_retidos = None
 
-    # --- LÓGICA ADICIONADA AQUI ---
-    # Busca a data mínima e máxima de atividade no banco de dados
-    # para limitar o calendário.
+    # Busca as datas mínima e máxima de atividade para limitar os calendários
     query_datas = """
         SELECT MIN(data) as min_data, MAX(data) as max_data
         FROM (
@@ -1048,35 +985,91 @@ def relatorios():
         )
     """
     limites_data = conn.execute(query_datas).fetchone()
-    # --- FIM DA LÓGICA ADICIONADA ---
 
     if request.method == 'POST':
-        data_inicio = request.form.get('data_inicio')
-        data_fim = request.form.get('data_fim')
+        report_type = request.form.get('report_type')
 
-        if data_inicio and data_fim:
-            total_faturado = conn.execute(
-                "SELECT SUM(valor_pago) as total FROM pagamentos WHERE data_pagamento BETWEEN ? AND ?",
-                (data_inicio, data_fim)
-            ).fetchone()['total']
+        # --- LÓGICA PARA O RELATÓRIO FINANCEIRO POR PERÍODO ---
+        if report_type == 'financial':
+            data_inicio = request.form.get('data_inicio')
+            data_fim = request.form.get('data_fim')
 
-            os_concluidas = conn.execute(
-                "SELECT COUNT(id) as count FROM ordens_servico WHERE status = 'Entregue' AND data_entrada BETWEEN ? AND ?",
-                (data_inicio, data_fim)
-            ).fetchone()['count']
+            if data_inicio and data_fim:
+                # Total faturado (pagamentos recebidos no período)
+                total_faturado = conn.execute(
+                    "SELECT SUM(valor_pago) as total FROM pagamentos WHERE data_pagamento BETWEEN ? AND ?",
+                    (data_inicio, data_fim)
+                ).fetchone()['total']
 
-            dados_relatorio = {
-                "total_faturado": total_faturado or 0,
-                "os_concluidas": os_concluidas or 0,
-                "data_inicio": data_inicio,
-                "data_fim": data_fim
-            }
+                # OS concluídas (status 'Entregue') no período
+                os_concluidas = conn.execute(
+                    "SELECT COUNT(id) as count FROM ordens_servico WHERE status = 'Entregue' AND data_entrada BETWEEN ? AND ?",
+                    (data_inicio, data_fim)
+                ).fetchone()['count']
+
+                # Clientes únicos atendidos no período
+                clientes_atendidos = conn.execute("""
+                    SELECT DISTINCT cl.id, cl.nome 
+                    FROM clientes cl 
+                    JOIN equipamentos eq ON cl.id = eq.cliente_id 
+                    JOIN ordens_servico os ON eq.id = os.equipamento_id 
+                    WHERE os.status = 'Entregue' AND os.data_entrada BETWEEN ? AND ?
+                """, (data_inicio, data_fim)).fetchall()
+
+                # Contas a receber de OS finalizadas no período
+                contas_a_receber_query = """
+                    SELECT os.id, cl.nome as cliente_nome, 
+                           (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = os.id) +
+                           (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = os.id)
+                           - (SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = os.id) as saldo_devedor
+                    FROM ordens_servico as os
+                    JOIN equipamentos as eq ON os.equipamento_id = eq.id
+                    JOIN clientes as cl ON eq.cliente_id = cl.id
+                    WHERE os.status = 'Finalizado / Aguardando Retirada' AND os.data_entrada BETWEEN ? AND ?
+                """
+                contas_a_receber = conn.execute(contas_a_receber_query, (data_inicio, data_fim)).fetchall()
+                # Filtra para mostrar apenas as que têm saldo devedor
+                contas_a_receber = [conta for conta in contas_a_receber if conta['saldo_devedor'] > 0]
+
+                dados_relatorio = {
+                    "total_faturado": total_faturado or 0,
+                    "os_concluidas": os_concluidas or 0,
+                    "clientes_atendidos": clientes_atendidos,
+                    "contas_a_receber": contas_a_receber,
+                    "data_inicio": data_inicio,
+                    "data_fim": data_fim
+                }
+
+        # --- LÓGICA PARA O RELATÓRIO DE ESTOQUE RETIDO (ATUALIZADA) ---
+        elif report_type == 'stock':
+            dias_parado = int(request.form.get('dias_parado', 30))
+            data_limite = date.today() - timedelta(days=dias_parado)
+
+            produtos_retidos_query = """
+                SELECT 
+                    ei.nome as produto_nome, 
+                    op.quantidade_usada as qtd_retida,
+                    os.id as os_id,
+                    cl.nome as cliente_nome,
+                    eq.tipo as equipamento_tipo,
+                    eq.marca as equipamento_marca
+                FROM orcamento_produtos op
+                JOIN estoque_itens ei ON op.estoque_item_id = ei.id
+                JOIN ordens_servico os ON op.ordem_servico_id = os.id
+                JOIN equipamentos eq ON os.equipamento_id = eq.id
+                JOIN clientes cl ON eq.cliente_id = cl.id
+                WHERE os.status NOT IN ('Entregue', 'Cancelado', 'Arquivada') AND os.data_entrada <= ?
+                ORDER BY os.data_entrada ASC, cl.nome ASC
+            """
+            produtos_retidos = conn.execute(produtos_retidos_query, (data_limite.strftime('%Y-%m-%d'),)).fetchall()
+
+            dados_relatorio = {"dias_parado": dias_parado}
 
     conn.close()
 
-    # Passamos os limites de data para o template
     return render_template('relatorios.html',
                            relatorio=dados_relatorio,
+                           produtos_retidos=produtos_retidos,
                            min_data_disponivel=limites_data['min_data'],
                            max_data_disponivel=limites_data['max_data'])
 
