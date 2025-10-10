@@ -10,7 +10,7 @@ a = Analysis(
         ('app/templates', 'app/templates'),
         ('app/static', 'app/static')
     ],
-    hiddenimports=[],
+    hiddenimports=['win32event', 'win32api', 'winerror'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

@@ -15,7 +15,7 @@
         <h2>Relatório Financeiro por Período</h2>
         <form method="POST">
             <input type="hidden" name="report_type" value="financial">
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr auto; margin-bottom: 1rem;">
+            <div class="form-grid form-grid--relatorios">
                 <div>
                     <label for="data_inicio">Data de Início:</label>
                     <input type="text" class="datepicker" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio and relatorio.data_inicio else '' }}" required placeholder="dd/mm/aaaa">
@@ -86,7 +86,7 @@
         <p class="subtitle" style="margin-bottom: 20px;">Verifique produtos alocados em Ordens de Serviço que estão paradas há muito tempo.</p>
         <form method="POST">
              <input type="hidden" name="report_type" value="stock">
-             <div class="form-grid" style="grid-template-columns: 1fr auto;">
+             <div class="form-grid form-grid--relatorios">
                 <div>
                     <label for="dias_parado">Mostrar produtos em OS abertas há mais de:</label>
                     <input type="number" name="dias_parado" id="dias_parado" value="{{ relatorio.dias_parado if relatorio and relatorio.dias_parado else 30 }}" min="1" required style="max-width: 200px;">

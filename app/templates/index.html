@@ -52,7 +52,7 @@
         <a href="{{ url_for('main.listar_clientes', source='os') }}" class="action-button cta-button">&#43; Criar OS</a>
     </div>
 
-    <h2>Feed de Atividades (Ordens de Serviço Recentes)</h2>
+    <h2>Feed de Atividades<br><span class="h2-subtitle">(Ordens de Serviço Recentes)</span></h2>
     {% for os in ordens_servico %}
         <div class="card os-card status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
             <div class="os-header">

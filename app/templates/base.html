@@ -2,10 +2,10 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <!-- META TAG DE VIEWPORT ADICIONADA PARA RESPONSIVIDADE -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema Luthier{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -20,9 +20,8 @@
                     <img src="{{ url_for('static', filename='logo_fundo_transparente.png') }}" alt="Logo da Oficina">
                 </div>
             </div>
-             <nav class="global-nav">
-                <!-- CORREÇÃO APLICADA AQUI E NAS LINHAS ABAIXO -->
-                <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
+            <nav class="global-nav">
+                <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint and 'index' in request.endpoint %}active{% endif %}">Dashboard</a>
                 <a href="{{ url_for('main.listar_clientes') }}" class="nav-link {% if request.endpoint and 'cliente' in request.endpoint %}active{% endif %}">Clientes</a>
                 <a href="{{ url_for('main.listar_servicos') }}" class="nav-link {% if request.endpoint and 'servico' in request.endpoint %}active{% endif %}">Catálogo</a>
                 <a href="{{ url_for('main.listar_estoque') }}" class="nav-link {% if request.endpoint and 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
@@ -61,6 +60,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% block scripts %}
     <script>
         // --- Script para aviso de alterações não salvas ---
         let hasUnsavedChanges = false;
@@ -80,7 +80,7 @@
     {% if current_user.is_authenticated %}
     <script>
         (function() {
-            const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutos
+            const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutos
             let inactivityTimer;
 
             function logoutUser() {
@@ -103,6 +103,7 @@
         })();
     </script>
     {% endif %}
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    {% endblock %}
 </body>
 </html>
+

@@ -24,10 +24,10 @@
             <tbody>
                 {% for os in ordens_servico %}
                 <tr>
-                    <td>{{ os.id }}</td>
-                    <td>{{ os.nome_cliente }}</td>
-                    <td>{{ os.tipo_equipamento }} {{ os.marca_equipamento }}</td>
-                    <td>{{ os.status }}</td>
+                    <td data-label="OS Nº">{{ os.id }}</td>
+                    <td data-label="Cliente">{{ os.nome_cliente }}</td>
+                    <td data-label="Equipamento">{{ os.tipo_equipamento }} {{ os.marca_equipamento }}</td>
+                    <td data-label="Status">{{ os.status }}</td>
                     <td class="actions-cell">
                         <a href="{{ url_for('main.detalhe_os', os_id=os.id) }}" class="action-link" title="Ver Detalhes">
                             Ver Detalhes

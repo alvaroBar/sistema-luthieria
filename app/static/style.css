@@ -310,4 +310,266 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
     transform: scale(1.2) rotate(-10deg);
 }
 
+/* --- ESTILOS ESPECÍFICOS PARA OS GRIDS DE RELATÓRIOS --- */
+.form-grid--relatorios {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+.form-grid--relatorios button {
+    width: 100%;
+}
+
+.h2-subtitle {
+    font-size: 0.7em; /* Deixa o subtítulo menor */
+    font-weight: 400; /* Deixa a fonte mais leve */
+    color: var(--cor-texto-secundario); /* Usa a cor de texto secundária */
+    margin-top: 4px; /* Adiciona um pequeno espaço acima */
+}
+
+/* --- 2. MEDIA QUERIES PARA RESPONSIVIDADE --- */
+
+/* Para telas de até 768px (tablets e celulares) */
+@media (max-width: 768px) {
+
+    /* --- GERAL E LAYOUT --- */
+    .container {
+        padding: 15px; /* Reduz o espaçamento lateral em telas menores */
+    }
+
+    /* --- CABEÇALHO --- */
+    .main-header {
+        flex-direction: column; /* Empilha o título e o logo */
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .global-nav {
+        flex-wrap: wrap; /* Permite que os links da navegação quebrem a linha */
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .nav-link {
+        padding: 8px 10px;
+        font-size: 0.9em;
+    }
+
+    .user-menu-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    /* --- CABEÇALHO DA PÁGINA --- */
+    .page-header {
+        flex-direction: column; /* Empilha o título e o botão */
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .page-header .action-button {
+        width: 100%; /* Faz o botão ocupar a largura total */
+        box-sizing: border-box;
+    }
+
+    /* --- AJUSTE PARA OS CARDS DE MÉTRICAS NO MOBILE (2x2) --- */
+.stats-grid {
+    grid-template-columns: repeat(2, 1fr); /* Cria o grid de 2 colunas */
+    gap: 15px; /* Reduz o espaçamento entre os cards */
+}
+
+.stat-card {
+    flex-direction: column; /* Empilha o ícone e a informação */
+    text-align: center; /* Centraliza o texto */
+    padding: 15px; /* Reduz o padding interno */
+    gap: 8px; /* Reduz o espaço entre o ícone e o texto */
+}
+
+.stat-icon {
+    width: 40px; /* Diminui o tamanho do ícone */
+    height: 40px;
+}
+
+.stat-icon svg {
+    width: 20px; /* Diminui o SVG dentro do ícone */
+    height: 20px;
+}
+
+.stat-value {
+    font-size: 1.3em; /* Reduz um pouco o tamanho do número */
+}
+
+    /* --- TABELAS --- */
+    /* Para evitar que as tabelas quebrem o layout, vamos torná-las roláveis horizontalmente. */
+    /* Primeiro, você precisará envolver suas tabelas em um div. Ex: <div class="table-wrapper"><table...></div> */
+    /* Se não quiser alterar o HTML, a abordagem abaixo torna o card inteiro rolável, o que também funciona. */
+    /* --- AJUSTE PARA TABELAS LARGAS EM TELAS PEQUENAS --- */
+    /* --- TRANSFORMA A TABELA EM CARDS EM TELAS PEQUENAS --- */
+.data-table {
+    border: none;
+}
+
+/* 1. Esconde o cabeçalho original da tabela */
+.data-table thead {
+    display: none;
+}
+
+/* 2. Transforma cada linha da tabela em um card */
+.data-table tr {
+    display: block; /* Cada linha vira um bloco separado */
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-borda-card);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.data-table tr:last-child {
+    margin-bottom: 0;
+}
+
+/* 3. Ajusta as células para se comportarem como linhas */
+.data-table td {
+    display: flex; /* Alinha o rótulo e o dado */
+    justify-content: space-between; /* Coloca o rótulo na esquerda e o dado na direita */
+    align-items: center;
+    padding: 8px 0;
+    border: none;
+    text-align: right; /* Alinha o dado do cliente à direita */
+}
+
+/* 4. Adiciona os rótulos (ex: "Nome:") antes de cada dado */
+.data-table td::before {
+    content: attr(data-label); /* Pega o texto do atributo 'data-label' */
+    font-weight: 600;
+    text-align: left;
+    margin-right: 10px;
+    color: var(--cor-texto-secundario);
+}
+
+/* 5. Ajusta a célula de ações */
+.data-table .actions-cell {
+    justify-content: flex-end; /* Alinha os botões de ação à direita */
+    padding-top: 10px;
+    border-top: 1px solid var(--cor-linha-divisoria);
+    margin-top: 5px;
+}
+
+.data-table .actions-cell::before {
+    display: none; /* Não mostra o rótulo "Ações:" */
+}
+    .data-table th, .data-table td {
+        padding: 10px 8px; /* Reduz o padding das células para economizar espaço */
+    }
+
+    /* --- FEED DE ATIVIDADES --- */
+    .os-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .os-body-grid {
+        grid-template-columns: 1fr; /* Empilha as informações da OS */
+        gap: 15px;
+    }
+
+    /* --- MODAIS --- */
+    .modal-content {
+        width: 95%; /* Garante que o modal não ocupe a tela inteira */
+    }
+
+    /* --- ESTILOS RESPONSIVOS PARA O FORMULÁRIO DE BUSCA --- */
+.search-form {
+    flex-direction: column; /* Empilha o campo de busca e os botões */
+    gap: 10px;
+}
+
+.search-form input,
+.search-form button,
+.search-form a {
+    width: 100%; /* Faz os elementos do formulário ocuparem a largura total */
+    box-sizing: border-box; /* Garante que o padding não quebre o layout de 100% */
+}
+
+/* --- AJUSTES PARA O BANNER DE INFORMAÇÃO --- */
+.info-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 5px;
+}
+/* --- AJUSTES PARA OS FORMULÁRIOS DE RELATÓRIOS NO MOBILE --- */
+.form-grid--relatorios {
+    grid-template-columns: 1fr; /* Força uma única coluna */
+    gap: 15px; /* Aumenta o espaçamento vertical */
+}
+
+.form-grid--relatorios .actions-cell {
+    margin-top: 10px; /* Adiciona um espaço acima do botão */
+}
+
+/* --- CENTRALIZA TÍTULOS PRINCIPAIS NO MOBILE --- */
+.page-header .header-title,
+main.container > h2,
+.cta-panel h2 {
+    text-align: center;
+    width: 100%; /* Garante que o container do título ocupe todo o espaço */
+}
+
+/* --- AJUSTES PARA A PÁGINA DE DETALHES DA OS --- */
+
+/* 1. Garante que os formulários de status e ações empilhem corretamente */
+.form-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.form-inline button,
+.form-inline a {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 2. Empilha o resumo financeiro (Total, Pago, Devedor) */
+.financeiro-resumo {
+    flex-direction: column;
+    gap: 10px;
+}
+
+.financeiro-resumo div {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+}
+
+/* 3. Ajusta o controle de quantidade de produto */
+.data-table .quantity-control {
+    justify-content: flex-end; /* Alinha os botões +/- à direita */
+    padding-right: 5px;
+}
+
+/* Dentro de @media (max-width: 786px) { ... } */
+
+.grid {
+    grid-template-columns: 1fr; /* Força o grid a ter apenas uma coluna */
+}
+
+/* --- AJUSTES PARA CAIXAS DE SELEÇÃO (SELECTS) NO MOBILE --- */
+.form-grid select {
+    font-size: 0.95em; /* Reduz a fonte para caber mais texto */
+
+    /* As regras abaixo removem a seta padrão e adicionam uma customizada, melhorando a consistência */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 0.7em top 50%;
+    background-size: 0.65em auto;
+    padding-right: 2.5em; /* Espaço para a nova seta */
+}
+
+}
+
 

@@ -10,70 +10,152 @@
         </div>
     </div>
 
+    <!-- CARD DO RELATÓRIO FINANCEIRO -->
     <div class="card">
-        <h2>Filtrar por Período</h2>
-        <form method="POST" class="form-grid" style="grid-template-columns: 1fr 1fr auto;">
-            <div>
-                <label for="data_inicio">Data de Início:</label>
-                <input type="text" class="datepicker" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio else '' }}" required>
-            </div>
-            <div>
-                <label for="data_fim">Data de Fim:</label>
-                <input type="text" class="datepicker" id="data_fim" name="data_fim" value="{{ relatorio.data_fim if relatorio else '' }}" required>
-            </div>
-            <div class="actions-cell" style="align-self: end;">
-                <button type="submit" class="button--primary">Gerar Relatório</button>
+        <h2>Relatório Financeiro por Período</h2>
+        <form method="POST">
+            <input type="hidden" name="report_type" value="financial">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr auto; margin-bottom: 1rem;">
+                <div>
+                    <label for="data_inicio">Data de Início:</label>
+                    <input type="text" class="datepicker" id="data_inicio" name="data_inicio" value="{{ relatorio.data_inicio if relatorio and relatorio.data_inicio else '' }}" required placeholder="dd/mm/aaaa">
+                </div>
+                <div>
+                    <label for="data_fim">Data de Fim:</label>
+                    <input type="text" class="datepicker" id="data_fim" name="data_fim" value="{{ relatorio.data_fim if relatorio and relatorio.data_fim else '' }}" required placeholder="dd/mm/aaaa">
+                </div>
+                <div class="actions-cell" style="align-self: end;">
+                    <button type="submit" class="button--primary">Gerar Relatório</button>
+                </div>
             </div>
         </form>
+
+        {% if relatorio and relatorio.data_inicio %}
+        <div id="financial-results">
+            <hr>
+            <h3>Resultados para o período de {{ relatorio.data_inicio | datebr }} a {{ relatorio.data_fim | datebr }}</h3>
+            <div class="stats-grid" style="margin-top: 20px;">
+                <div class="stat-card">
+                    <div class="stat-icon icon-purple"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+                    <div class="stat-info"><span class="stat-title">Total Faturado</span><span class="stat-value">R$ {{ "%.2f"|format(relatorio.total_faturado) }}</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-green"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+                    <div class="stat-info"><span class="stat-title">Serviços Concluídos</span><span class="stat-value">{{ relatorio.os_concluidas }}</span></div>
+                </div>
+                 <div class="stat-card">
+                    <div class="stat-icon icon-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+                    <div class="stat-info"><span class="stat-title">Clientes Atendidos</span><span class="stat-value">{{ relatorio.clientes_atendidos | length }}</span></div>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 30px;">Clientes Atendidos no Período</h4>
+            <table class="data-table">
+                <thead><tr><th>Nome do Cliente</th></tr></thead>
+                <tbody>
+                    {% for cliente in relatorio.clientes_atendidos %}
+                    <tr><td>{{ cliente.nome }}</td></tr>
+                    {% else %}
+                    <tr><td>Nenhum cliente finalizado no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h4 style="margin-top: 30px;">Contas a Receber (OS Finalizadas)</h4>
+            <table class="data-table">
+                 <thead><tr><th>OS #</th><th>Cliente</th><th>Saldo Devedor (R$)</th></tr></thead>
+                 <tbody>
+                    {% for conta in relatorio.contas_a_receber %}
+                    <tr>
+                        <td><a href="{{ url_for('main.detalhe_os', os_id=conta.id) }}">{{ conta.id }}</a></td>
+                        <td>{{ conta.cliente_nome }}</td>
+                        <td>R$ {{ "%.2f"|format(conta.saldo_devedor) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3">Nenhuma conta a receber para OS finalizadas no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
     </div>
 
-    {% if relatorio %}
+    <!-- CARD DO RELATÓRIO DE ESTOQUE RETIDO -->
     <div class="card">
-        <h2>Resultados para o período de {{ relatorio.data_inicio | replace('-', '/') }} a {{ relatorio.data_fim | replace('-', '/') }}</h2>
-        <div class="stats-grid" style="margin-top: 20px;">
-            <div class="stat-card">
-                <div class="stat-icon icon-purple">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        <h2>Relatório de Estoque Retido</h2>
+        <p class="subtitle" style="margin-bottom: 20px;">Verifique produtos alocados em Ordens de Serviço que estão paradas há muito tempo.</p>
+        <form method="POST">
+             <input type="hidden" name="report_type" value="stock">
+             <div class="form-grid" style="grid-template-columns: 1fr auto;">
+                <div>
+                    <label for="dias_parado">Mostrar produtos em OS abertas há mais de:</label>
+                    <input type="number" name="dias_parado" id="dias_parado" value="{{ relatorio.dias_parado if relatorio and relatorio.dias_parado else 30 }}" min="1" required style="max-width: 200px;">
+                    <span>dias</span>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-title">Total Faturado no Período</span>
-                    <span class="stat-value">R$ {{ "%.2f"|format(relatorio.total_faturado) }}</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon icon-green">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                </div>
-                <div class="stat-info">
-                    <span class="stat-title">Serviços Concluídos</span>
-                    <span class="stat-value">{{ relatorio.os_concluidas }}</span>
+                <div class="actions-cell" style="align-self: end;">
+                    <button type="submit" class="button--secondary">Verificar Estoque</button>
                 </div>
             </div>
+        </form>
+
+        {% if produtos_retidos is not none %}
+        <div id="stock-results">
+            <hr>
+            <h3>Produtos retidos em OS paradas há mais de {{ relatorio.dias_parado }} dias</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Qtd.</th>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>OS #</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produto in produtos_retidos %}
+                    <tr>
+                        <td>{{ produto.produto_nome }}</td>
+                        <td>{{ produto.qtd_retida }}</td>
+                        <td>{{ produto.cliente_nome }}</td>
+                        <td>{{ produto.equipamento_tipo }} {{ produto.equipamento_marca }}</td>
+                        <td><a href="{{ url_for('main.detalhe_os', os_id=produto.os_id) }}">{{ produto.os_id }}</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" style="text-align:center;">Nenhum produto retido encontrado para este critério.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% endif %}
     </div>
-    {% endif %}
+
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Define as configurações base para os calendários
             const baseConfig = {
-                dateFormat: "Y-m-d", // Formato que o backend espera (YYYY-MM-DD)
-                altInput: true,      // Mostra um formato amigável para o usuário
-                altFormat: "d/m/Y",  // Formato amigável (DD/MM/YYYY)
-                minDate: "{{ min_data_disponivel }}",
-                maxDate: "{{ max_data_disponivel }}",
+                dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
+                minDate: "{{ min_data_disponivel }}", maxDate: "{{ max_data_disponivel }}",
             };
 
-            // Inicializa o calendário de Data de Fim primeiro
-            const fimPicker = flatpickr("#data_fim", baseConfig);
-
-            // Inicializa o calendário de Data de Início, com a lógica de atualização
-            const inicioPicker = flatpickr("#data_inicio", {
-                ...baseConfig, // Usa as configurações base
+            const fimPicker = flatpickr("#data_fim", {
+                ...baseConfig,
                 onChange: function(selectedDates, dateStr, instance) {
-                    // Quando a data de início muda, define a data mínima para o calendário de Data de Fim
+                    if (selectedDates[0]) {
+                        inicioPicker.set('maxDate', selectedDates[0]);
+                    }
+                }
+            });
+
+            const inicioPicker = flatpickr("#data_inicio", {
+                ...baseConfig,
+                onChange: function(selectedDates, dateStr, instance) {
                     if (selectedDates[0]) {
                         fimPicker.set('minDate', selectedDates[0]);
+                         const fimDate = new Date(fimPicker.input.value.split('/').reverse().join('-'));
+                        if (fimDate < selectedDates[0]) {
+                            fimPicker.clear();
+                        }
                     }
                 }
             });

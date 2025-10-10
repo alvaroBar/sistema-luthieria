@@ -24,10 +24,10 @@
             <tbody>
                 {% for item in itens %}
                 <tr>
-                    <td>{{ item.nome }}</td>
-                    <td>{{ item.descricao }}</td>
-                    <td>{{ item.quantidade }}</td>
-                    <td>R$ {{ "%.2f"|format(item.preco_venda) }}</td>
+                    <td data-label="Nome do Item">{{ item.nome }}</td>
+                    <td data-label="Descrição">{{ item.descricao }}</td>
+                    <td data-label="Quantidade">{{ item.quantidade }}</td>
+                    <td data-label="Preço venda">R$ {{ "%.2f"|format(item.preco_venda) }}</td>
                     <td class="actions-cell">
                         <button class="action-link action-link--add" title="Adicionar quantidade ao estoque" onclick="openAddStockModal({{ item.id }}, '{{ item.nome }}')">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

@@ -60,7 +60,7 @@
                     <select name="servico_id" id="servico_id" required>
                         <option value="" disabled selected>-- Selecione um serviço --</option>
                         {% for servico in catalogo_servicos %}
-                            <option value="{{ servico.id }}">{{ servico.nome }} (R$ {{ "%.2f"|format(servico.preco_sugerido) }})</option>
+                            <option value="{{ servico.id }}">{{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco_sugerido) }}</option>
                         {% endfor %}
                         <option value="novo-servico" class="option-new">[ + Adicionar Novo Serviço ao Catálogo ]</option>
                     </select>
@@ -79,7 +79,7 @@
                      <select name="estoque_item_id" id="estoque_item_id" required>
                          <option value="" disabled selected>-- Selecione um produto --</option>
                          {% for item in estoque_disponivel %}
-                            <option value="{{ item.id }}" data-quantidade="{{ item.quantidade }}">{{ item.nome }} (Disp: {{ item.quantidade }}, R$ {{ "%.2f"|format(item.preco_venda) }})</option>
+                            <option value="{{ item.id }}" data-quantidade="{{ item.quantidade }}">{{ item.nome }} - R$ {{ "%.2f"|format(item.preco_venda) }}</option>
                          {% endfor %}
                          <option value="novo-produto" class="option-new">[ + Adicionar Novo Produto ao Estoque ]</option>
                      </select>
@@ -104,23 +104,23 @@
                 </tr>
             </thead>
             <tbody>
-                {% for item in itens_orcamento %}
-                <tr>
-                    <td>{{ item.servico_descricao }}</td>
-                    <td>R$ {{ "%.2f"|format(item.valor_cobrado) }}</td>
-                    <td class="actions-cell">
-                        <form class="delete-form" action="{{ url_for('main.excluir_item_orcamento', item_id=item.id) }}" method="POST">
-                            <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este serviço?');" title="Excluir item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                 {% if not itens_orcamento %}
-                <tr><td colspan="3" style="text-align: center;">Nenhum serviço adicionado.</td></tr>
-                {% endif %}
-            </tbody>
+    {% for item in itens_orcamento %}
+    <tr>
+        <td data-label="Serviço Prestado">{{ item.servico_descricao }}</td>
+        <td data-label="Valor (R$)">R$ {{ "%.2f"|format(item.valor_cobrado) }}</td>
+        <td class="actions-cell">
+            <form class="delete-form" action="{{ url_for('main.excluir_item_orcamento', item_id=item.id) }}" method="POST">
+                <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este serviço?');" title="Excluir item">
+                    <svg xmlns="http://www.w.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+     {% if not itens_orcamento %}
+    <tr><td colspan="3" style="text-align: center;">Nenhum serviço adicionado.</td></tr>
+    {% endif %}
+</tbody>
         </table>
 
         <h3 style="margin-top: 20px;">Peças e Produtos Utilizados</h3>
@@ -134,36 +134,36 @@
                 </tr>
             </thead>
              <tbody>
-                {% for produto in produtos_orcamento %}
-                <tr>
-                    <td>{{ produto.nome }}</td>
-                    <td class="quantity-control-cell">
-                        <div class="quantity-control">
-                            <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
-                                <input type="hidden" name="action" value="decrement">
-                                <button type="submit" class="quantity-btn" {% if produto.quantidade_usada <= 1 %}disabled{% endif %}>-</button>
-                            </form>
-                            <span>{{ produto.quantidade_usada }}</span>
-                            <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
-                                <input type="hidden" name="action" value="increment">
-                                <button type="submit" class="quantity-btn" {% if produto.estoque_disponivel <= 0 %}disabled{% endif %}>+</button>
-                            </form>
-                        </div>
-                    </td>
-                    <td>R$ {{ "%.2f"|format(produto.valor_cobrado_unidade) }}</td>
-                    <td class="actions-cell">
-                        <form class="delete-form" action="{{ url_for('main.excluir_produto_orcamento', item_id=produto.id) }}" method="POST">
-                             <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este produto? A quantidade retornará ao estoque.');" title="Excluir item">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not produtos_orcamento %}
-                <tr><td colspan="4" style="text-align: center;">Nenhum produto adicionado.</td></tr>
-                {% endif %}
-            </tbody>
+    {% for produto in produtos_orcamento %}
+    <tr>
+        <td data-label="Produto">{{ produto.nome }}</td>
+        <td data-label="Quantidade" class="quantity-control-cell">
+            <div class="quantity-control">
+                <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
+                    <input type="hidden" name="action" value="decrement">
+                    <button type="submit" class="quantity-btn" {% if produto.quantidade_usada <= 1 %}disabled{% endif %}>-</button>
+                </form>
+                <span>{{ produto.quantidade_usada }}</span>
+                <form action="{{ url_for('main.atualizar_quantidade_produto', item_id=produto.id) }}" method="POST">
+                    <input type="hidden" name="action" value="increment">
+                    <button type="submit" class="quantity-btn" {% if produto.estoque_disponivel <= 0 %}disabled{% endif %}>+</button>
+                </form>
+            </div>
+        </td>
+        <td data-label="Valor Unit. (R$)">R$ {{ "%.2f"|format(produto.valor_cobrado_unidade) }}</td>
+        <td class="actions-cell">
+            <form class="delete-form" action="{{ url_for('main.excluir_produto_orcamento', item_id=produto.id) }}" method="POST">
+                 <button type="submit" class="action-link action-link--delete" onclick="return confirm('Deseja remover este produto? A quantidade retornará ao estoque.');" title="Excluir item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    {% if not produtos_orcamento %}
+    <tr><td colspan="4" style="text-align: center;">Nenhum produto adicionado.</td></tr>
+    {% endif %}
+</tbody>
         </table>
 
         <div class="total"> TOTAL GERAL: R$ {{ "%.2f"|format(total_orcamento) }} </div>
@@ -206,28 +206,28 @@
                 </tr>
             </thead>
             <tbody>
-                {% for pagamento in pagamentos %}
-                <tr>
-                    <td>{{ pagamento.data_pagamento | datebr }}</td>
-                    <td>{{ pagamento.forma_pagamento }}</td>
-                    <td>R$ {{ "%.2f"|format(pagamento.valor_pago) }}</td>
-                    <td class="actions-cell">
-                        <button type="button" class="action-link action-link--edit" title="Editar Pagamento"
-                                onclick="openModalEditarPagamento({{ pagamento.id }}, '{{ pagamento.data_pagamento }}', '{{ pagamento.valor_pago }}', '{{ pagamento.forma_pagamento }}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                        </button>
-                        <form class="delete-form" action="{{ url_for('main.excluir_pagamento', pagamento_id=pagamento.id) }}" method="POST">
-                            <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir este pagamento?');" title="Excluir Pagamento">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not pagamentos %}
-                <tr> <td colspan="4" style="text-align: center;">Nenhum pagamento registrado.</td> </tr>
-                {% endif %}
-            </tbody>
+    {% for pagamento in pagamentos %}
+    <tr>
+        <td data-label="Data">{{ pagamento.data_pagamento | datebr }}</td>
+        <td data-label="Forma de Pagamento">{{ pagamento.forma_pagamento }}</td>
+        <td data-label="Valor Pago (R$)">R$ {{ "%.2f"|format(pagamento.valor_pago) }}</td>
+        <td class="actions-cell">
+            <button type="button" class="action-link action-link--edit" title="Editar Pagamento"
+                    onclick="openModalEditarPagamento({{ pagamento.id }}, '{{ pagamento.data_pagamento }}', '{{ pagamento.valor_pago }}', '{{ pagamento.forma_pagamento }}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5S5L17 3z"></path></svg>
+            </button>
+            <form class="delete-form" action="{{ url_for('main.excluir_pagamento', pagamento_id=pagamento.id) }}" method="POST">
+                <button type="submit" class="action-link action-link--delete" onclick="return confirm('Tem certeza que deseja excluir este pagamento?');" title="Excluir Pagamento">
+                    <svg xmlns="http://www.w.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    {% if not pagamentos %}
+    <tr> <td colspan="4" style="text-align: center;">Nenhum pagamento registrado.</td> </tr>
+    {% endif %}
+</tbody>
         </table>
     </div>
 
