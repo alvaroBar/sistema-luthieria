@@ -446,13 +446,55 @@ def editar_cliente(cliente_id):
 @login_required
 def excluir_cliente(cliente_id):
     conn = db.get_db_connection()
+
+    # 1. Verifica se o cliente tem equipamentos associados
+    equipamentos_count = conn.execute(
+        'SELECT COUNT(id) FROM equipamentos WHERE cliente_id = ?',
+        (cliente_id,)
+    ).fetchone()[0]
+
+    # 2. Pega o parâmetro de confirmação da URL (ex: ?confirm=true)
+    confirm_delete = request.args.get('confirm') == 'true'
+
+    # 3. Se tem equipamentos E a exclusão ainda não foi confirmada...
+    if equipamentos_count > 0 and not confirm_delete:
+        # Ele não exclui, apenas envia um aviso para a página de clientes.
+        flash(
+            f"ATENÇÃO: Este cliente possui {equipamentos_count} equipamento(s) e Ordens de Serviço associadas. "
+            "Excluí-lo removerá TODOS esses registros permanentemente. "
+            "Clique em Excluir novamente para confirmar.",
+            "error"  # Usamos 'error' para dar destaque visual
+        )
+
+        # Recarrega a página de clientes, passando o ID do cliente que precisa de confirmação
+        termo_busca = request.args.get('busca')
+        source = request.args.get('source')
+        if termo_busca:
+            clientes = conn.execute('SELECT * FROM clientes WHERE nome LIKE ? OR cpf LIKE ? ORDER BY nome',
+                                    (f'%{termo_busca}%', f'%{termo_busca}%')).fetchall()
+        else:
+            clientes = conn.execute('SELECT * FROM clientes ORDER BY nome').fetchall()
+        conn.close()
+
+        return render_template('clientes.html',
+                               clientes=clientes,
+                               termo_busca=termo_busca,
+                               source=source,
+                               cliente_a_confirmar_exclusao=cliente_id)  # <-- Variável chave
+
+    # 4. Se não tem equipamentos OU se a exclusão foi confirmada...
     try:
+        # A exclusão em cascata (ON DELETE CASCADE) no banco de dados cuidará de apagar
+        # os equipamentos e as OSs relacionadas.
         conn.execute('DELETE FROM clientes WHERE id = ?', (cliente_id,))
         conn.commit()
+        flash("Cliente e todos os seus dados foram excluídos com sucesso.", "success")
     except sqlite3.IntegrityError:
-        pass
+        # Este bloco é um fallback caso a exclusão em cascata não esteja ativa
+        flash("Erro: Não foi possível excluir o cliente pois ele ainda possui registros associados.", "error")
     finally:
         conn.close()
+
     return redirect(url_for('main.listar_clientes'))
 
 

@@ -131,36 +131,41 @@
     </div>
 
 
+    {% endblock %}  {% block scripts %} <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Configuração base para ambos os calendários
             const baseConfig = {
-                dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
-                minDate: "{{ min_data_disponivel }}", maxDate: "{{ max_data_disponivel }}",
+                dateFormat: "Y-m-d", // Formato que o backend recebe
+                altInput: true,      // Cria um campo de input visualmente diferente e amigável
+                altFormat: "d/m/Y",  // Como a data aparecerá para o usuário
+                minDate: "{{ min_data_disponivel }}",
+                maxDate: "{{ max_data_disponivel }}",
             };
 
+            // Inicializa o calendário de data de início
+            const inicioPicker = flatpickr("#data_inicio", {
+                ...baseConfig,
+                onChange: function(selectedDates) {
+                    // Quando a data de início muda, define ela como a data mínima para o calendário de fim
+                    if (selectedDates[0]) {
+                        fimPicker.set('minDate', selectedDates[0]);
+                    }
+                }
+            });
+
+            // Inicializa o calendário de data de fim
             const fimPicker = flatpickr("#data_fim", {
                 ...baseConfig,
-                onChange: function(selectedDates, dateStr, instance) {
+                onChange: function(selectedDates) {
+                     // Quando a data de fim muda, define ela como a data máxima para o calendário de início
                     if (selectedDates[0]) {
                         inicioPicker.set('maxDate', selectedDates[0]);
                     }
                 }
             });
-
-            const inicioPicker = flatpickr("#data_inicio", {
-                ...baseConfig,
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (selectedDates[0]) {
-                        fimPicker.set('minDate', selectedDates[0]);
-                         const fimDate = new Date(fimPicker.input.value.split('/').reverse().join('-'));
-                        if (fimDate < selectedDates[0]) {
-                            fimPicker.clear();
-                        }
-                    }
-                }
-            });
         });
     </script>
-
 {% endblock %}
 
