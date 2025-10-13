@@ -182,33 +182,47 @@ def editar_usuario(user_id):
 
 
 @main_routes.route('/usuarios/<int:user_id>/excluir', methods=['POST'])
-
-# --- ROTA INDEX (ATUALIZADA COM CÁLCULO DE MÉTRICAS) ---
+# --- ROTA INDEX (ATUALIZADA COM FILTROS E MÉTRICAS) ---
 @main_routes.route('/')
 @login_required
 def index():
     conn = db.get_db_connection()
 
-    # Busca as OS ativas para o feed
-    query_os = """
+    # 1. Pega os valores dos filtros da URL (ex: /?status=Entregue&cliente=Teste)
+    status_filtro = request.args.get('status', '')
+    cliente_filtro = request.args.get('cliente', '')
+
+    # 2. Monta a query base com os joins necessários
+    query_base = """
         SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
         FROM ordens_servico as os
         JOIN equipamentos as eq ON os.equipamento_id = eq.id
         JOIN clientes as cl ON eq.cliente_id = cl.id
         WHERE os.arquivada = 0
-        ORDER BY os.id DESC
     """
-    ordens_servico = conn.execute(query_os).fetchall()
+    params = []
 
-    # Calcula as métricas para o dashboard
+    # 3. Adiciona os filtros na query se eles existirem
+    if status_filtro:
+        query_base += " AND os.status = ?"
+        params.append(status_filtro)
+
+    if cliente_filtro:
+        query_base += " AND cl.nome LIKE ?"
+        params.append(f'%{cliente_filtro}%')
+
+    query_base += " ORDER BY os.id DESC"
+
+    # 4. Executa a query final com os filtros aplicados
+    ordens_servico = conn.execute(query_base, tuple(params)).fetchall()
+
+    # O restante da sua lógica de cálculo de métricas pode continuar aqui...
     stats = {
         'em_andamento': 0,
         'aguardando_aprovacao': 0,
         'finalizadas': 0,
         'valor_a_receber': 0.0
     }
-
-    # Contagem de status
     status_counts = conn.execute(
         "SELECT status, COUNT(id) as count FROM ordens_servico WHERE arquivada = 0 GROUP BY status").fetchall()
     for row in status_counts:
@@ -219,10 +233,8 @@ def index():
         elif row['status'] == 'Finalizado / Aguardando Retirada':
             stats['finalizadas'] = row['count']
 
-    # Cálculo do valor a receber (Total Orçado - Total Pago) para OS finalizadas e não pagas
     query_receber = """
         SELECT
-            os.id,
             (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = os.id) +
             (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = os.id) as total_orcado,
             (SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = os.id) as total_pago
@@ -236,7 +248,17 @@ def index():
             stats['valor_a_receber'] += saldo_devedor
 
     conn.close()
-    return render_template('index.html', ordens_servico=ordens_servico, stats=stats)
+
+    # 5. Lista de status para popular o dropdown no HTML
+    status_opcoes = ['Aguardando Orçamento', 'Aguardando Aprovação do Cliente', 'Aprovado / Em Andamento',
+                     'Finalizado / Aguardando Retirada', 'Entregue', 'Cancelado']
+
+    return render_template('index.html',
+                           ordens_servico=ordens_servico,
+                           stats=stats,
+                           status_opcoes=status_opcoes,
+                           status_filtro=status_filtro,
+                           cliente_filtro=cliente_filtro)
 
 
 # --- NOVAS ROTAS DE ARQUIVAMENTO ---

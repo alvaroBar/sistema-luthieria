@@ -138,6 +138,14 @@ main.container { padding-top: 20px; }
     .icon-purple { background-color: #5b21b6; color: #c4b5fd; }
 }
 
+/* --- ESTILO PARA O GRID DE FILTROS (DESKTOP) --- */
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas de tamanho igual */
+    gap: 15px;
+    align-items: flex-end; /* Alinha os itens na base */
+}
+
 /* --- PAINEL DE CHAMADA PARA AÇÃO (CTA) --- */
 .cta-panel { display: flex; justify-content: space-between; align-items: center; background-color: var(--cor-fundo); }
 .cta-panel .subtitle { opacity: 0; max-height: 0; overflow: hidden; margin-top: 0; transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out; }
@@ -242,6 +250,12 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 .modal-content { position: relative; z-index: 1001; width: 90%; max-width: 600px; }
 .close-button { background: none; border: none; font-size: 2.5em; font-weight: 300; color: var(--cor-texto-secundario); cursor: pointer; line-height: 1; padding: 0; }
 .close-button:hover { color: var(--cor-texto-primario); }
+
+/* --- CONTROLE DE VISIBILIDADE DOS FILTROS (DESKTOP) --- */
+.filter-title-mobile,
+.label-mobile {
+    display: none; /* Esconde os elementos de mobile na tela grande */
+}
 
 /* --- ANIMAÇÃO DO BOTÃO 'NOVO CLIENTE' --- */
 .move-down { display: inline-block; transition: transform 0.6s ease, opacity 0.6s ease; }
@@ -568,6 +582,35 @@ main.container > h2,
     background-position: right 0.7em top 50%;
     background-size: 0.65em auto;
     padding-right: 2.5em; /* Espaço para a nova seta */
+}
+
+/* --- CONTROLE DE VISIBILIDADE DOS FILTROS (MOBILE) --- */
+.label-desktop {
+    display: none; /* Esconde os rótulos de desktop na tela pequena */
+}
+
+.label-mobile {
+    display: block; /* Mostra os rótulos de mobile */
+}
+
+.filter-title-mobile {
+    display: block; /* Mostra o título 'Filtros' no mobile */
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--cor-linha-divisoria);
+}
+
+/* --- ESTILO PARA O GRID DE FILTROS (MOBILE) --- */
+.filter-grid {
+    grid-template-columns: 1fr; /* Uma única coluna */
+}
+
+/* Garante que os campos ocupem 100% no mobile */
+.filter-grid input,
+.filter-grid select {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 }

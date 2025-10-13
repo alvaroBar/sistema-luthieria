@@ -52,6 +52,35 @@
         <a href="{{ url_for('main.listar_clientes', source='os') }}" class="action-button cta-button">&#43; Criar OS</a>
     </div>
 
+    <div class="card">
+    <h2 class="filter-title-mobile">Filtrar por:</h2>
+    <form method="GET" action="{{ url_for('main.index') }}" class="filter-form">
+        <div class="filter-grid">
+            <div>
+                <label for="cliente" class="label-desktop">Filtrar por Cliente:</label>
+                <label for="cliente" class="label-mobile">Cliente</label>
+                <input type="text" name="cliente" id="cliente" placeholder="Digite o nome do cliente..." value="{{ cliente_filtro or '' }}">
+            </div>
+            <div>
+                <label for="status" class="label-desktop">Filtrar por Status:</label>
+                <label for="status" class="label-mobile">Status</label>
+                <select name="status" id="status">
+                    <option value="">Todos os Status</option>
+                    {% for status_opcao in status_opcoes %}
+                        <option value="{{ status_opcao }}" {% if status_opcao == status_filtro %}selected{% endif %}>
+                            {{ status_opcao }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="actions-cell" style="justify-content: flex-end; margin-top: 15px;">
+            <a href="{{ url_for('main.index') }}" class="button--secondary">Limpar Filtros</a>
+            <button type="submit" class="button--primary">Filtrar</button>
+        </div>
+    </form>
+</div>
+
     <h2>Feed de Atividades<br><span class="h2-subtitle">(Ordens de Serviço Recentes)</span></h2>
     {% for os in ordens_servico %}
         <div class="card os-card status-{{ os.status | lower | replace(' ', '-') | replace('/', '-') }}">
@@ -99,6 +128,7 @@
     {% endfor %}
     {% if not ordens_servico %}
         <p style="text-align: center;">Nenhuma ordem de serviço ativa no momento.</p>
+        <p style="text-align: center;">Talvez seja necessário limpar os filtros.</p>
     {% endif %}
 {% endblock %}
 
