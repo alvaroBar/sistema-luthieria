@@ -1,5 +1,6 @@
 # Arquivo de Configuração Principal da Aplicação
 
+
 # INFORMAÇÕES DO PRESTADOR DE SERVIÇO (LUTHIER)
 # Altere os valores abaixo com os dados reais da oficina
 LUTHIER_NOME = "Oficina das Cordas"

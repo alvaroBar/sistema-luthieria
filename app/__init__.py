@@ -4,67 +4,79 @@ import os
 import sys
 import shutil
 from datetime import timedelta, datetime
-from flask import Flask, session, render_template  # <-- 'session' adicionado aqui
+from flask import Flask, session, render_template
 from flask_login import LoginManager
 
-# Variável global para o caminho dos dados do aplicativo
-APP_DATA_PATH = ''
 
 # --- FUNÇÃO DO FILTRO DE DATA ---
 def format_date_br(value, format='%d/%m/%Y'):
     """Formata uma string de data YYYY-MM-DD para DD/MM/YYYY."""
     try:
-        # Tenta converter a string para um objeto de data e depois formata
         return datetime.strptime(value, '%Y-%m-%d').strftime(format)
     except (ValueError, TypeError):
-        # Se a conversão falhar (ex: o valor é nulo ou já está em outro formato), retorna o valor original
         return value
+
 
 def create_app():
     """
     Cria e configura uma instância da aplicação Flask.
-    Este é o padrão Application Factory.
     """
-    global APP_DATA_PATH
-
     app = Flask(__name__, instance_relative_config=True)
+
+    # Garante que a pasta 'instance' exista para uploads
+    try:
+        if not os.path.exists(app.instance_path):
+            os.makedirs(app.instance_path)
+    except OSError:
+        pass
+
+    # Adiciona o filtro de data ao ambiente Jinja
     app.jinja_env.filters['datebr'] = format_date_br
 
-    # --- LÓGICA DE CAMINHOS PARA PROGRAM FILES E APPDATA ---
+    # --- LÓGICA DE CAMINHOS CORRIGIDA ---
     if getattr(sys, 'frozen', False):
+        # MODO PRODUÇÃO (APP COMPILADO)
+        # Usa a pasta %LOCALAPPDATA% para os dados
         program_base_dir = os.path.dirname(sys.executable)
-        app_data_root = os.environ.get('LOCALAPPDATA')
-        APP_DATA_PATH = os.path.join(app_data_root, 'SistemaLuthier')
+        app_data_path = os.path.join(os.environ.get('LOCALAPPDATA'), 'SistemaLuthier')
+
+        if not os.path.exists(app_data_path):
+            os.makedirs(app_data_path)
+
+        # Define o caminho do banco de dados de destino
+        db_path = os.path.join(app_data_path, 'luthier.db')
+
+        # Se o banco de dados não existir no destino, copia o original da instalação
+        db_source_path = os.path.join(program_base_dir, 'luthier.db')
+        if not os.path.exists(db_path):
+            shutil.copy2(db_source_path, db_path)
     else:
+        # MODO DESENVOLVIMENTO
+        # Usa o banco de dados diretamente da pasta do projeto
         program_base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        APP_DATA_PATH = program_base_dir
+        app_data_path = program_base_dir  # A pasta de dados é a própria pasta do projeto
+        db_path = os.path.join(program_base_dir, 'luthier.db')
 
-    if not os.path.exists(APP_DATA_PATH):
-        os.makedirs(APP_DATA_PATH)
+    # Salva o caminho do banco de dados ATIVO na configuração do app
+    app.config['DATABASE_PATH'] = db_path
 
-    db_source_path = os.path.join(program_base_dir, 'luthier.db')
-    db_dest_path = os.path.join(APP_DATA_PATH, 'luthier.db')
-
-    if not os.path.exists(db_dest_path):
-        shutil.copy2(db_source_path, db_dest_path)
-
+    # Carrega as configurações do arquivo config.py
     config_path = os.path.join(program_base_dir, 'config.py')
     app.config.from_pyfile(config_path)
 
-    app.config['SECRET_KEY'] = 'sua-chave-secreta-super-dificil-de-adivinhar'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua-chave-secreta-super-dificil-de-adivinhar'
 
-    # --- NOVO: CONFIGURAÇÃO DE TIMEOUT DA SESSÃO ---
+    # ... (o resto da sua função create_app continua igual a partir daqui) ...
+    # Configuração de timeout da sessão, recibos, LoginManager, etc.
+
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
 
     @app.before_request
     def make_session_permanent():
         session.permanent = True
 
-    # --- FIM DA CONFIGURAÇÃO DE TIMEOUT ---
-
-    RECIBOS_FOLDER = os.path.join(APP_DATA_PATH, 'recibos')
-    app.config['RECIBOS_FOLDER'] = RECIBOS_FOLDER
-
+    recibos_folder = os.path.join(app_data_path, 'recibos')
+    app.config['RECIBOS_FOLDER'] = recibos_folder
     if not os.path.exists(app.config['RECIBOS_FOLDER']):
         os.makedirs(app.config['RECIBOS_FOLDER'])
 
@@ -72,14 +84,15 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
 
-    from .models import User
     import db
+    db.init_app(app)
+
+    from .models import User
 
     @login_manager.user_loader
     def load_user(user_id):
-        conn = db.get_db_connection()
+        conn = db.get_db()
         user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-        conn.close()
         if user_data:
             return User(id=user_data['id'], username=user_data['username'], role=user_data['role'])
         return None
@@ -89,17 +102,12 @@ def create_app():
     from . import auth
     app.register_blueprint(auth.auth_bp)
 
-    # --- MANIPULADORES DE ERRO (ERROR HANDLERS) ---
     @app.errorhandler(404)
     def page_not_found(e):
-        # note that we set the 404 status explicitly
         return render_template('404.html'), 404
 
     @app.errorhandler(500)
     def internal_server_error(e):
-        # note that we set the 500 status explicitly
         return render_template('500.html'), 500
-
-    # --- FIM DOS MANIPULADORES DE ERRO ---
 
     return app

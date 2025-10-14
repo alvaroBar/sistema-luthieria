@@ -103,7 +103,7 @@
                     </div>
                     <div class="info-item">
                         <span class="label">Acessórios</span>
-                        <span class="data">{{ os.acessorios_entrada or 'N/A' }}</span>
+                        <span class="data">{{ (os.acessorios_entrada or 'N/A') | safe }}</span>
                     </div>
                 </div>
                 <div class="info-item-full">
@@ -128,8 +128,14 @@
         </div>
     {% endfor %}
     {% if not ordens_servico %}
-        <p style="text-align: center;">Nenhuma ordem de serviço ativa no momento.</p>
-        <p style="text-align: center;">Talvez seja necessário limpar os filtros.</p>
+    <div style="text-align: center; padding: 20px;" class="card">
+    {% if cliente_filtro or status_filtro %}
+        <p>Nenhuma Ordem de Serviço encontrada para os filtros aplicados.</p>
+        <a href="{{ url_for('main.index') }}" class="button--secondary" style="margin-top: 15px;">Limpar Filtros</a>
+    {% else %}
+        <p>Nenhuma Ordem de Serviço ativa no momento.</p>
     {% endif %}
+    </div>
+{% endif %}
 {% endblock %}
 

@@ -16,7 +16,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         user_data = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         conn.close()
 

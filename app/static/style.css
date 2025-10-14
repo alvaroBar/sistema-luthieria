@@ -60,7 +60,22 @@ hr { border: none; height: 1px; background-color: var(--cor-linha-divisoria); ma
 .card, .nav-panel { background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda-card); padding: 24px; margin-bottom: 24px; box-shadow: var(--sombra-card); transition: all 0.2s ease-in-out; }
 form { margin-top: 20px; }
 input, select, textarea { padding: 12px; font-size: 1em; border: 1px solid var(--cor-borda); border-radius: 8px; background-color: var(--cor-fundo); color: var(--cor-texto-primario); width: calc(100% - 26px); font-family: var(--fonte-corpo); }
-button, .action-button, .pdf-button, .button--secondary { padding: 12px 18px; color: var(--cor-texto-botao); border: none; cursor: pointer; border-radius: 8px; font-size: 1em; text-decoration: none; text-align: center; transition: opacity 0.2s; font-family: var(--fonte-titulo); font-weight: 700; }
+button, .action-button, .pdf-button, .button--secondary, .button--primary {
+    display: inline-flex;     /* Adicionado para alinhar ícone e texto */
+    align-items: center;       /* Adicionado para alinhar ícone e texto */
+    justify-content: center;   /* Adicionado para centralizar o conteúdo */
+    padding: 12px 18px;
+    color: var(--cor-texto-botao); /* <-- A correção principal está aqui! */
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 1em;
+    text-decoration: none;
+    text-align: center;
+    transition: opacity 0.2s;
+    font-family: var(--fonte-titulo);
+    font-weight: 700;
+}
 button:hover, .action-button:hover, .pdf-button:hover, .button--secondary:hover { text-decoration: none; opacity: 0.9; }
 .button--primary { background-color: var(--cor-primaria-botao); }
 .button--secondary { background-color: var(--cor-secundaria-botao); }
@@ -69,6 +84,12 @@ button[type="submit"] { background-color: var(--cor-sucesso-botao); }
 .pdf-button { background-color: var(--cor-secundaria-botao); }
 .delete-form { display: inline-block; margin: 0; padding: 0; }
 form button[onclick*="remover"] { background-color: var(--cor-perigo-botao) !important; }
+
+/* --- MELHORA A LEGIBILIDADE DOS PARÁGRAFOS DE DESCRIÇÃO --- */
+.subtitle {
+    line-height: 1.6; /* Aumenta o espaço entre as linhas do parágrafo */
+    max-width: 65ch;  /* Limita a largura da linha para facilitar a leitura */
+}
 
 /* --- ESTILOS DO CABEÇALHO GLOBAL --- */
 .global-header { background-color: var(--cor-fundo-card); border-bottom: 1px solid var(--cor-borda); padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: var(--sombra-card); }

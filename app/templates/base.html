@@ -39,6 +39,8 @@
                 {% if current_user.role == 'admin' %}
                     <a href="{{ url_for('main.listar_usuarios') }}" class="user-menu-link">Gerenciar Usuários</a>
                     <span class="separator">|</span>
+                     <a href="{{ url_for('main.importar_exportar_view') }}" class="user-menu-link">Importar/Exportar</a>
+                    <span class="separator">|</span>
                     <a href="{{ url_for('main.shutdown') }}" class="shutdown-button" onclick="return confirm('ATENÇÃO:\nIsso irá encerrar o programa para TODOS os usuários.\n\nTem certeza que deseja continuar?');">Desligar Servidor</a>
                     <span class="separator">|</span>
                 {% endif %}

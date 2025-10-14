@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Importar e Exportar Dados{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div class="header-title">
+            <h1>Utilitários</h1>
+            <p class="subtitle">Gerencie os dados da sua aplicação.</p>
+        </div>
+    </div>
+
+    <div class="card">
+    <h2>Exportar Banco de Dados</h2>
+    <p class="subtitle" style="margin-bottom: 20px;">
+        Crie um backup completo de todos os seus dados. O arquivo gerado (`.db`) pode ser usado para restaurar o sistema em caso de problemas ou para migrar para outro computador.
+    </p>
+    <div class="actions-cell" style="justify-content: flex-start;">
+
+        <a href="{{ url_for('main.exportar_db') }}" class="button--primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Fazer Backup e Exportar
+        </a>
+
+    </div>
+</div>
+
+    <div class="card">
+        <h2>Importar Banco de Dados</h2>
+        <p class="subtitle" style="margin-bottom: 20px;">
+            <strong style="color: var(--cor-perigo-botao);">ATENÇÃO:</strong> Esta ação é irreversível. Ao importar um novo arquivo, todos os dados atuais do sistema serão **completamente substituídos** pelo conteúdo do arquivo de backup.
+        </p>
+        <form action="{{ url_for('main.importar_db') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmImport();">
+            <div class="form-grid" style="grid-template-columns: 1fr auto; align-items: end;">
+                <div>
+                    <label for="db_file">Selecione o arquivo de backup (.db):</label>
+                    <input type="file" name="db_file" id="db_file" accept=".db" required>
+                </div>
+                <button type="submit" class="button--secondary" style="background-color: var(--cor-perigo-botao);">
+                    Substituir Dados Atuais
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function confirmImport() {
+            const fileInput = document.getElementById('');
+            if (!fileInput.value) {
+                alert("Por favor, selecione um arquivo antes de importar.");
+                return false;
+            }
+
+            const confirmation = confirm(
+                "ATENÇÃO: AÇÃO IRREVERSÍVEL!\n\n" +
+                "Você tem certeza que deseja substituir TODOS os dados atuais do sistema por este backup?\n\n" +
+                "Todos os clientes, serviços e ordens de serviço não salvos no arquivo serão perdidos."
+            );
+            
+            return confirmation;
+        }
+    </script>
+{% endblock %}

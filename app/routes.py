@@ -1,3 +1,4 @@
+import shutil
 import sqlite3
 import os
 import base64
@@ -11,6 +12,7 @@ from flask import (Blueprint, render_template, request, url_for, redirect,
 from flask_login import login_required, current_user
 from weasyprint import HTML
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
 import db
 
@@ -29,7 +31,7 @@ def admin_required(f):
 
 # --- FUNÇÃO DE AJUDA PARA O RECIBO (CORRIGIDA) ---
 def gerar_e_salvar_recibo(os_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     query = """
         SELECT
             os.id as os_id, os.status as os_status, cl.nome as cliente_nome,
@@ -47,7 +49,7 @@ def gerar_e_salvar_recibo(os_id):
     itens_orcamento = db.get_itens_orcamento_por_os(os_id)
     produtos_orcamento = db.get_produtos_orcamento_por_os(os_id)
 
-    conn.close()
+    ## conn.close()
 
     if not dados_recibo:
         return None
@@ -78,10 +80,10 @@ def gerar_e_salvar_recibo(os_id):
     with open(caminho_completo, 'wb') as f:
         f.write(pdf)
 
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     conn.execute('UPDATE ordens_servico SET caminho_recibo = ? WHERE id = ?', (nome_arquivo, os_id))
     conn.commit()
-    conn.close()
+    ## conn.close()
 
     # --- CORREÇÃO AQUI ---
     return nome_arquivo
@@ -92,9 +94,9 @@ def gerar_e_salvar_recibo(os_id):
 @login_required
 @admin_required
 def listar_usuarios():
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     usuarios = conn.execute('SELECT id, username, role FROM users ORDER BY username').fetchall()
-    conn.close()
+    ## conn.close()
     return render_template('usuarios.html', usuarios=usuarios)
 
 
@@ -108,12 +110,12 @@ def novo_usuario():
         password = request.form.get('password')
         role = request.form.get('role')
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         user_exists = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
 
         if user_exists:
             flash(f"Erro: O nome de usuário '{username}' já existe.", "error")
-            conn.close()
+            # conn.close()
             return redirect(url_for('main.novo_usuario'))
 
         password_hash = generate_password_hash(password)
@@ -121,7 +123,7 @@ def novo_usuario():
         conn.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
                      (username, password_hash, role))
         conn.commit()
-        conn.close()
+        # conn.close()
         flash(f"Usuário '{username}' criado com sucesso!", "success")
         return redirect(url_for('main.listar_usuarios'))
 
@@ -133,14 +135,14 @@ def novo_usuario():
 @login_required
 @admin_required
 def excluir_usuario(user_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     if user_id != 1:  # Proteção contra exclusão do admin principal
         conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
         conn.commit()
         flash("Usuário excluído com sucesso.", "success")
     else:
         flash("Não é possível excluir o usuário administrador principal.", "error")
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.listar_usuarios'))
 
 
@@ -154,14 +156,14 @@ def editar_usuario(user_id):
         password = request.form.get('password')
         role = request.form.get('role')
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
 
         # Verifica se o novo nome de usuário já está em uso por OUTRO usuário
         user_exists = conn.execute('SELECT id FROM users WHERE username = ? AND id != ?',
                                    (username, user_id)).fetchone()
         if user_exists:
             flash(f"Erro: O nome de usuário '{username}' já está em uso.", "error")
-            conn.close()
+            # conn.close()
             return redirect(url_for('main.listar_usuarios'))
 
         if password:
@@ -175,7 +177,7 @@ def editar_usuario(user_id):
                          (username, role, user_id))
 
         conn.commit()
-        conn.close()
+        # conn.close()
         flash(f"Usuário '{username}' atualizado com sucesso!", "success")
 
     return redirect(url_for('main.listar_usuarios'))
@@ -186,15 +188,19 @@ def editar_usuario(user_id):
 @main_routes.route('/')
 @login_required
 def index():
-    conn = db.get_db_connection()
+    conn = db.get_db()
 
-    # 1. Pega os valores dos filtros da URL (ex: /?status=Entregue&cliente=Teste)
+    # --- 1. LÓGICA DE FILTRAGEM (permanece a mesma) ---
     status_filtro = request.args.get('status', '')
     cliente_filtro = request.args.get('cliente', '')
 
-    # 2. Monta a query base com os joins necessários
     query_base = """
-        SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
+        SELECT os.id, os.status, cl.nome as nome_cliente,
+               eq.tipo as tipo_equipamento, eq.marca as marca_equipamento,
+               os.data_entrada, os.acessorios_entrada, os.descricao_problema,
+               (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = os.id) +
+               (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = os.id) as total_orcado,
+               (SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = os.id) as total_pago
         FROM ordens_servico as os
         JOIN equipamentos as eq ON os.equipamento_id = eq.id
         JOIN clientes as cl ON eq.cliente_id = cl.id
@@ -202,7 +208,6 @@ def index():
     """
     params = []
 
-    # 3. Adiciona os filtros na query se eles existirem
     if status_filtro:
         query_base += " AND os.status = ?"
         params.append(status_filtro)
@@ -213,43 +218,33 @@ def index():
 
     query_base += " ORDER BY os.id DESC"
 
-    # 4. Executa a query final com os filtros aplicados
     ordens_servico = conn.execute(query_base, tuple(params)).fetchall()
 
-    # O restante da sua lógica de cálculo de métricas pode continuar aqui...
+    # --- 2. NOVA LÓGICA DE CÁLCULO DAS MÉTRICAS ---
+    # As métricas agora são calculadas a partir da lista 'ordens_servico' já filtrada
     stats = {
         'em_andamento': 0,
         'aguardando_aprovacao': 0,
         'finalizadas': 0,
         'valor_a_receber': 0.0
     }
-    status_counts = conn.execute(
-        "SELECT status, COUNT(id) as count FROM ordens_servico WHERE arquivada = 0 GROUP BY status").fetchall()
-    for row in status_counts:
-        if row['status'] == 'Aprovado / Em Andamento':
-            stats['em_andamento'] = row['count']
-        elif row['status'] == 'Aguardando Aprovação do Cliente':
-            stats['aguardando_aprovacao'] = row['count']
-        elif row['status'] == 'Finalizado / Aguardando Retirada':
-            stats['finalizadas'] = row['count']
 
-    query_receber = """
-        SELECT
-            (SELECT IFNULL(SUM(valor_cobrado), 0) FROM orcamento_itens WHERE ordem_servico_id = os.id) +
-            (SELECT IFNULL(SUM(valor_cobrado_unidade * quantidade_usada), 0) FROM orcamento_produtos WHERE ordem_servico_id = os.id) as total_orcado,
-            (SELECT IFNULL(SUM(valor_pago), 0) FROM pagamentos WHERE ordem_servico_id = os.id) as total_pago
-        FROM ordens_servico as os
-        WHERE os.status = 'Finalizado / Aguardando Retirada' AND os.arquivada = 0
-    """
-    contas_a_receber = conn.execute(query_receber).fetchall()
-    for conta in contas_a_receber:
-        saldo_devedor = conta['total_orcado'] - conta['total_pago']
-        if saldo_devedor > 0:
-            stats['valor_a_receber'] += saldo_devedor
+    for os in ordens_servico:
+        if os['status'] == 'Aprovado / Em Andamento':
+            stats['em_andamento'] += 1
+        elif os['status'] == 'Aguardando Aprovação do Cliente':
+            stats['aguardando_aprovacao'] += 1
+        elif os['status'] == 'Finalizado / Aguardando Retirada':
+            stats['finalizadas'] += 1
+
+            # Calcula o saldo devedor apenas para as OS finalizadas
+            saldo_devedor = os['total_orcado'] - os['total_pago']
+            if saldo_devedor > 0:
+                stats['valor_a_receber'] += saldo_devedor
 
     conn.close()
 
-    # 5. Lista de status para popular o dropdown no HTML
+    # --- 3. DADOS ENVIADOS PARA O TEMPLATE (permanece o mesmo) ---
     status_opcoes = ['Aguardando Orçamento', 'Aguardando Aprovação do Cliente', 'Aprovado / Em Andamento',
                      'Finalizado / Aguardando Retirada', 'Entregue', 'Cancelado']
 
@@ -266,7 +261,7 @@ def index():
 @login_required
 def arquivar_os(os_id):
     """Marca uma Ordem de Serviço como arquivada, SE o status permitir."""
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
 
     # Busca a OS para verificar o status antes de arquivar
     os = conn.execute('SELECT status FROM ordens_servico WHERE id = ?', (os_id,)).fetchone()
@@ -276,7 +271,7 @@ def arquivar_os(os_id):
         conn.execute('UPDATE ordens_servico SET arquivada = 1 WHERE id = ?', (os_id,))
         conn.commit()
 
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.index'))
 
 
@@ -284,7 +279,7 @@ def arquivar_os(os_id):
 @login_required
 def listar_arquivadas():
     """Mostra a página com todas as Ordens de Serviço arquivadas."""
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     query = """
         SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente
         FROM ordens_servico as os
@@ -294,7 +289,7 @@ def listar_arquivadas():
         ORDER BY os.id DESC
     """
     ordens_arquivadas = conn.execute(query).fetchall()
-    conn.close()
+    # conn.close()
     return render_template('arquivadas.html', ordens_servico=ordens_arquivadas)
 
 
@@ -302,10 +297,10 @@ def listar_arquivadas():
 @login_required
 def desarquivar_os(os_id):
     """Marca uma Ordem de Serviço como não arquivada, trazendo-a de volta para o feed."""
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     conn.execute('UPDATE ordens_servico SET arquivada = 0 WHERE id = ?', (os_id,))
     conn.commit()
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.listar_arquivadas'))
 
 
@@ -313,9 +308,9 @@ def desarquivar_os(os_id):
 @main_routes.route('/servicos')
 @login_required
 def listar_servicos():
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     servicos = conn.execute('SELECT * FROM servicos ORDER BY nome').fetchall()
-    conn.close()
+    # conn.close()
     return render_template('servicos.html', servicos=servicos)
 
 
@@ -328,7 +323,7 @@ def novo_servico():
 
     nome = request.form['nome']
     preco_sugerido = request.form['preco_sugerido']
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     source_os_id = request.form.get('source_os_id')
 
     try:
@@ -337,7 +332,7 @@ def novo_servico():
         flash(f"Serviço '{nome}' criado com sucesso!", "success")
     except sqlite3.IntegrityError:
         existing_item = conn.execute('SELECT * FROM servicos WHERE nome = ?', (nome,)).fetchone()
-        conn.close() # Fecha a conexão antes de chamar a função auxiliar
+        # conn.close() # Fecha a conexão antes de chamar a função auxiliar
         duplicate_item_data = {
             "type": "servico",
             "item": dict(existing_item)
@@ -348,9 +343,8 @@ def novo_servico():
         else:
             flash(f"Erro: Já existe um serviço cadastrado com o nome '{nome}'.", "error")
             return redirect(url_for('main.listar_servicos'))
-    finally:
-        if conn and not getattr(conn, 'closed', True):
-             conn.close()
+
+
 
     if source_os_id:
         return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
@@ -360,13 +354,13 @@ def novo_servico():
 @main_routes.route('/servicos/<int:servico_id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_servico(servico_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     servico = conn.execute('SELECT * FROM servicos WHERE id = ?', (servico_id,)).fetchone()
     if request.method == 'POST':
         conn.execute('UPDATE servicos SET nome = ?, preco_sugerido = ? WHERE id = ?',
                      (request.form['nome'], request.form['preco_sugerido'], servico_id))
         conn.commit()
-        conn.close()
+        # conn.close()
 
         # --- LÓGICA DE REDIRECIONAMENTO ADICIONADA ---
         source_os_id = request.form.get('source_os_id')
@@ -376,17 +370,17 @@ def editar_servico(servico_id):
 
         return redirect(url_for('main.listar_servicos'))  # Redirecionamento padrão
 
-    conn.close()
+    # conn.close()
     return render_template('editar_servico.html', servico=servico)
 
 
 @main_routes.route('/servicos/<int:servico_id>/excluir', methods=['POST'])
 @login_required
 def excluir_servico(servico_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     conn.execute('DELETE FROM servicos WHERE id = ?', (servico_id,))
     conn.commit()
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.listar_servicos'))
 
 
@@ -398,13 +392,13 @@ def listar_clientes():
     # Captura o novo parâmetro 'source' da URL
     source = request.args.get('source')
 
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     if termo_busca:
         clientes = conn.execute('SELECT * FROM clientes WHERE nome LIKE ? OR cpf LIKE ? ORDER BY nome',
                                 (f'%{termo_busca}%', f'%{termo_busca}%')).fetchall()
     else:
         clientes = conn.execute('SELECT * FROM clientes ORDER BY nome').fetchall()
-    conn.close()
+    # conn.close()
 
     # Passa o novo parâmetro 'source' para o template
     return render_template('clientes.html', clientes=clientes, termo_busca=termo_busca, source=source)
@@ -414,13 +408,13 @@ def listar_clientes():
 @login_required
 def novo_cliente():
     if request.method == 'POST':
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         conn.execute(
             'INSERT INTO clientes (nome, cpf, celular_whatsapp, telefone_recado, email) VALUES (?, ?, ?, ?, ?)',
             (request.form['nome'], request.form['cpf'], request.form['celular_whatsapp'],
              request.form['telefone_recado'], request.form['email']))
         conn.commit()
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.listar_clientes'))
     return render_template('novo_cliente.html')
 
@@ -428,7 +422,7 @@ def novo_cliente():
 @main_routes.route('/clientes/<int:cliente_id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_cliente(cliente_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
     if request.method == 'POST':
         conn.execute(
@@ -436,16 +430,16 @@ def editar_cliente(cliente_id):
             (request.form['nome'], request.form['cpf'], request.form['celular_whatsapp'],
              request.form['telefone_recado'], request.form['email'], cliente_id))
         conn.commit()
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.listar_clientes'))
-    conn.close()
+    # conn.close()
     return render_template('editar_cliente.html', cliente=cliente)
 
 
 @main_routes.route('/clientes/<int:cliente_id>/excluir', methods=['POST'])
 @login_required
 def excluir_cliente(cliente_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
 
     # 1. Verifica se o cliente tem equipamentos associados
     equipamentos_count = conn.execute(
@@ -474,7 +468,7 @@ def excluir_cliente(cliente_id):
                                     (f'%{termo_busca}%', f'%{termo_busca}%')).fetchall()
         else:
             clientes = conn.execute('SELECT * FROM clientes ORDER BY nome').fetchall()
-        conn.close()
+        # conn.close()
 
         return render_template('clientes.html',
                                clientes=clientes,
@@ -492,8 +486,7 @@ def excluir_cliente(cliente_id):
     except sqlite3.IntegrityError:
         # Este bloco é um fallback caso a exclusão em cascata não esteja ativa
         flash("Erro: Não foi possível excluir o cliente pois ele ainda possui registros associados.", "error")
-    finally:
-        conn.close()
+
 
     return redirect(url_for('main.listar_clientes'))
 
@@ -502,19 +495,19 @@ def excluir_cliente(cliente_id):
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos')
 @login_required
 def listar_equipamentos(cliente_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
     equipamentos = conn.execute('SELECT * FROM equipamentos WHERE cliente_id = ? ORDER BY tipo', (cliente_id,)).fetchall()
-    conn.close()
+    # conn.close()
     return render_template('equipamentos.html', cliente=cliente, equipamentos=equipamentos)
 
 
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos/novo', methods=['GET', 'POST'])
 @login_required
 def novo_equipamento(cliente_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
-    conn.close()
+    # conn.close()
 
     if request.method == 'POST':
         tipo = request.form['tipo']
@@ -528,11 +521,11 @@ def novo_equipamento(cliente_id):
         modelo = request.form['modelo']
         numero_serie = request.form['numero_serie']
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         conn.execute('INSERT INTO equipamentos (cliente_id, tipo, marca, modelo, numero_serie) VALUES (?, ?, ?, ?, ?)',
                      (cliente_id, tipo, marca, modelo, numero_serie))
         conn.commit()
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.listar_equipamentos', cliente_id=cliente_id))
 
     return render_template('novo_equipamento.html', cliente=cliente)
@@ -541,11 +534,11 @@ def novo_equipamento(cliente_id):
 @main_routes.route('/equipamento/<int:equipamento_id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_equipamento(equipamento_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     # Pega os dados do equipamento e do cliente de uma vez só
     query = "SELECT eq.*, cl.nome as nome_cliente, cl.id as cliente_id FROM equipamentos as eq JOIN clientes as cl ON eq.cliente_id = cl.id WHERE eq.id = ?"
     equipamento = conn.execute(query, (equipamento_id,)).fetchone()
-    conn.close()
+    # conn.close()
 
     if request.method == 'POST':
         tipo = request.form['tipo']
@@ -558,11 +551,11 @@ def editar_equipamento(equipamento_id):
         modelo = request.form['modelo']
         numero_serie = request.form['numero_serie']
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         conn.execute('UPDATE equipamentos SET tipo = ?, marca = ?, modelo = ?, numero_serie = ? WHERE id = ?',
                      (tipo, marca, modelo, numero_serie, equipamento_id))
         conn.commit()
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.listar_equipamentos', cliente_id=equipamento['cliente_id']))
 
     return render_template('editar_equipamento.html', equipamento=equipamento)
@@ -571,7 +564,7 @@ def editar_equipamento(equipamento_id):
 @main_routes.route('/equipamento/<int:equipamento_id>/excluir', methods=['POST'])
 @login_required
 def excluir_equipamento(equipamento_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     # Primeiro, descobre a qual cliente o equipamento pertence para poder redirecionar de volta
     equipamento = conn.execute('SELECT cliente_id FROM equipamentos WHERE id = ?', (equipamento_id,)).fetchone()
     cliente_id = equipamento['cliente_id'] if equipamento else None
@@ -584,8 +577,7 @@ def excluir_equipamento(equipamento_id):
         # Falha silenciosamente para proteger os dados.
         # Em um sistema real, adicionaríamos uma flash message de erro.
         pass
-    finally:
-        conn.close()
+
 
     if cliente_id:
         return redirect(url_for('main.listar_equipamentos', cliente_id=cliente_id))
@@ -596,13 +588,13 @@ def excluir_equipamento(equipamento_id):
 @main_routes.route('/equipamento/<int:equipamento_id>/os/novo', methods=['GET', 'POST'])
 @login_required
 def nova_os(equipamento_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     dados_completos = conn.execute(
         "SELECT eq.*, cl.nome as nome_cliente, cl.id as id_cliente FROM equipamentos as eq JOIN clientes as cl ON eq.cliente_id = cl.id WHERE eq.id = ?",
         (equipamento_id,)).fetchone()
     cliente = {'id': dados_completos['id_cliente'], 'nome': dados_completos['nome_cliente']}
     equipamento = dict(dados_completos)
-    conn.close()
+    # conn.close()
 
     if request.method == 'POST':
         data_entrada = date.today().strftime('%Y-%m-%d')
@@ -616,14 +608,14 @@ def nova_os(equipamento_id):
 
         acessorios_finais = acessorios_radio
         if acessorios_obs:
-            acessorios_finais += f" (Obs: {acessorios_obs})"
+            acessorios_finais += f"<br>(Cliente deixou {acessorios_obs})"
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         conn.execute(
             'INSERT INTO ordens_servico (equipamento_id, data_entrada, data_previsao_saida, descricao_problema, status, acessorios_entrada) VALUES (?, ?, ?, ?, ?, ?)',
             (equipamento_id, data_entrada, data_previsao_saida, descricao_problema, status, acessorios_finais))
         conn.commit()
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.index'))
 
     return render_template('nova_os.html', cliente=cliente, equipamento=equipamento)
@@ -632,7 +624,7 @@ def nova_os(equipamento_id):
 @main_routes.route('/os/<int:os_id>')
 @login_required
 def detalhe_os(os_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     query_os = "SELECT os.*, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.nome as nome_cliente FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ? "
     os_data = conn.execute(query_os, (os_id,)).fetchone()
     itens_orcamento = conn.execute('SELECT * FROM orcamento_itens WHERE ordem_servico_id = ?', (os_id,)).fetchall()
@@ -643,7 +635,7 @@ def detalhe_os(os_id):
         "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome, ei.quantidade as estoque_disponivel FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
         (os_id,)).fetchall()
     estoque_disponivel = conn.execute('SELECT * FROM estoque_itens WHERE quantidade > 0 ORDER BY nome').fetchall()
-    conn.close()
+    # conn.close()
 
     total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
     total_produtos = sum(prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
@@ -666,7 +658,7 @@ def detalhe_os(os_id):
 @main_routes.route('/os/<int:os_id>/add_servico', methods=['POST'])
 @login_required
 def add_servico(os_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     servico_id = request.form['servico_id']
     valor_cobrado_str = request.form['valor_cobrado']
     servico_catalogo = conn.execute('SELECT * FROM servicos WHERE id = ?', (servico_id,)).fetchone()
@@ -674,7 +666,7 @@ def add_servico(os_id):
     valor = float(valor_cobrado_str) if valor_cobrado_str else servico_catalogo['preco_sugerido']
     conn.execute('INSERT INTO orcamento_itens (ordem_servico_id, servico_descricao, valor_cobrado) VALUES (?, ?, ?)', (os_id, descricao, valor))
     conn.commit()
-    conn.close()
+    # conn.close()
     # CORREÇÃO: Adiciona a âncora para manter a posição na página
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
@@ -682,12 +674,12 @@ def add_servico(os_id):
 @main_routes.route('/orcamento/item/<int:item_id>/excluir', methods=['POST'])
 @login_required
 def excluir_item_orcamento(item_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     item = conn.execute('SELECT ordem_servico_id FROM orcamento_itens WHERE id = ?', (item_id,)).fetchone()
     os_id = item['ordem_servico_id']
     conn.execute('DELETE FROM orcamento_itens WHERE id = ?', (item_id,))
     conn.commit()
-    conn.close()
+    # conn.close()
     # CORREÇÃO: Adiciona a âncora
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
@@ -698,12 +690,12 @@ def add_produto_orcamento(os_id):
     estoque_item_id = request.form['estoque_item_id']
     quantidade_usada = int(request.form.get('quantidade_usada', 1))
 
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     item_estoque = conn.execute('SELECT * FROM estoque_itens WHERE id = ?', (estoque_item_id,)).fetchone()
 
     # --- NOVA VERIFICAÇÃO DE ESTOQUE ---
     if item_estoque and quantidade_usada > item_estoque['quantidade']:
-        conn.close()
+        # conn.close()
         flash(
             f"Erro: Não há estoque suficiente para o produto '{item_estoque['nome']}'. Disponível: {item_estoque['quantidade']}.",
             "error")
@@ -719,14 +711,14 @@ def add_produto_orcamento(os_id):
         conn.execute('UPDATE estoque_itens SET quantidade = ? WHERE id = ?', (nova_quantidade, estoque_item_id))
         conn.commit()
 
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
 @main_routes.route('/orcamento/produto/<int:item_id>/excluir', methods=['POST'])
 @login_required
 def excluir_produto_orcamento(item_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     item_orcamento = conn.execute('SELECT * FROM orcamento_produtos WHERE id = ?', (item_id,)).fetchone()
     if item_orcamento:
         os_id = item_orcamento['ordem_servico_id']
@@ -735,10 +727,10 @@ def excluir_produto_orcamento(item_id):
         conn.execute('UPDATE estoque_itens SET quantidade = quantidade + ? WHERE id = ?', (quantidade_devolvida, estoque_item_id))
         conn.execute('DELETE FROM orcamento_produtos WHERE id = ?', (item_id,))
         conn.commit()
-        conn.close()
+        # conn.close()
         # CORREÇÃO: Adiciona a âncora
         return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.index'))
 
 
@@ -754,7 +746,7 @@ def add_pagamento(os_id):
 
     forma_pagamento = request.form['forma_pagamento']
     data_pagamento = date.today().strftime('%Y-%m-%d')
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
 
     # --- VALIDAÇÃO DE PAGAMENTO MAIOR QUE O DEVIDO ---
     # Calcula o saldo devedor atual
@@ -774,7 +766,7 @@ def add_pagamento(os_id):
 
     # Se o valor pago for maior que o saldo devedor, impede o registro
     if valor_pago > saldo_devedor:
-        conn.close()
+        # conn.close()
         flash(
             f"O valor do pagamento (R$ {valor_pago:.2f}) não pode ser maior que o saldo devedor (R$ {saldo_devedor:.2f}).",
             "error")
@@ -785,7 +777,7 @@ def add_pagamento(os_id):
         'INSERT INTO pagamentos (ordem_servico_id, data_pagamento, valor_pago, forma_pagamento) VALUES (?, ?, ?, ?)',
         (os_id, data_pagamento, valor_pago, forma_pagamento))
     conn.commit()
-    conn.close()
+    # conn.close()
     flash("Pagamento registrado com sucesso!", "success")
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
@@ -793,7 +785,7 @@ def add_pagamento(os_id):
 @main_routes.route('/os/<int:os_id>/pdf')
 @login_required
 def gerar_os_pdf(os_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     query_os = "SELECT os.*, eq.id as equipamento_id, eq.tipo as tipo_equipamento, eq.marca as marca_equipamento, cl.id as cliente_id, cl.nome as nome_cliente FROM ordens_servico as os JOIN equipamentos as eq ON os.equipamento_id = eq.id JOIN clientes as cl ON eq.cliente_id = cl.id WHERE os.id = ? "
     os_data = conn.execute(query_os, (os_id,)).fetchone()
     cliente_info = conn.execute('SELECT * FROM clientes WHERE id = ?', (os_data['cliente_id'],)).fetchone()
@@ -804,7 +796,7 @@ def gerar_os_pdf(os_id):
     produtos_orcamento = conn.execute(
         "SELECT op.id, op.quantidade_usada, op.valor_cobrado_unidade, ei.nome, ei.quantidade as estoque_disponivel FROM orcamento_produtos as op JOIN estoque_itens as ei ON op.estoque_item_id = ei.id WHERE op.ordem_servico_id = ?",
         (os_id,)).fetchall()
-    conn.close()
+    # conn.close()
 
     # Recalcula o total para garantir que está correto
     total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
@@ -844,13 +836,13 @@ def gerar_os_pdf(os_id):
 @login_required
 def atualizar_quantidade_produto(item_id):
     action = request.form.get('action')  # 'increment' ou 'decrement'
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
 
     # Busca o item do orçamento para saber a OS e o item de estoque
     item_orcamento = conn.execute('SELECT * FROM orcamento_produtos WHERE id = ?', (item_id,)).fetchone()
     if not item_orcamento:
         flash("Item do orçamento não encontrado.", "error")
-        conn.close()
+        # conn.close()
         return redirect(request.referrer or url_for('main.index'))
 
     os_id = item_orcamento['ordem_servico_id']
@@ -879,7 +871,7 @@ def atualizar_quantidade_produto(item_id):
             conn.execute('UPDATE estoque_itens SET quantidade = quantidade + 1 WHERE id = ?', (estoque_item_id,))
             conn.commit()
 
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.detalhe_os', os_id=os_id, _anchor='orcamento'))
 
 
@@ -888,7 +880,7 @@ def atualizar_quantidade_produto(item_id):
 @login_required
 def atualizar_status(os_id):
     novo_status = request.form['status']
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
 
     # Lógica de validação para o status 'Entregue'
     if novo_status == 'Entregue':
@@ -905,12 +897,12 @@ def atualizar_status(os_id):
         if saldo_devedor > 0:
             flash(f"Não é possível marcar como 'Entregue'. Ainda há um saldo devedor de R$ {saldo_devedor:.2f}.",
                   "error")
-            conn.close()
+            # conn.close()
             return redirect(url_for('main.detalhe_os', os_id=os_id))
 
     conn.execute('UPDATE ordens_servico SET status = ? WHERE id = ?', (novo_status, os_id))
     conn.commit()
-    conn.close()
+    # conn.close()
 
     if novo_status == 'Entregue' or novo_status == 'Cancelado':
         nome_arquivo = gerar_e_salvar_recibo(os_id)
@@ -935,7 +927,7 @@ def atualizar_status(os_id):
 # --- FUNÇÃO AUXILIAR PARA RECARREGAR DADOS DA OS (CORRIGIDA) ---
 def _get_os_page_data(os_id):
     """Busca todos os dados necessários para renderizar a página detalhe_os."""
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     os_data = db.get_os_completa_por_id(os_id)
     itens_orcamento = db.get_itens_orcamento_por_os(os_id)
 
@@ -947,7 +939,7 @@ def _get_os_page_data(os_id):
     catalogo_servicos = db.get_todos_servicos()
     estoque_disponivel = db.get_estoque_disponivel()
     pagamentos = db.get_pagamentos_por_os(os_id)
-    conn.close()  # Fecha a conexão aberta aqui
+    # conn.close()  # Fecha a conexão aberta aqui
 
     total_servicos = sum(item['valor_cobrado'] for item in itens_orcamento)
     total_produtos = sum(prod['valor_cobrado_unidade'] * prod['quantidade_usada'] for prod in produtos_orcamento)
@@ -970,9 +962,9 @@ def servir_recibo(filename):
 @main_routes.route('/estoque')
 @login_required
 def listar_estoque():
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     itens = conn.execute('SELECT * FROM estoque_itens ORDER BY nome').fetchall()
-    conn.close()
+    # conn.close()
     return render_template('estoque.html', itens=itens)
 
 
@@ -987,7 +979,7 @@ def novo_item_estoque():
     descricao = request.form.get('descricao', '')
     quantidade = request.form['quantidade']
     preco_venda = request.form['preco_venda']
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     source_os_id = request.form.get('source_os_id')
 
     try:
@@ -997,7 +989,7 @@ def novo_item_estoque():
         flash(f"Produto '{nome}' adicionado ao estoque com sucesso!", "success")
     except sqlite3.IntegrityError:
         existing_item = conn.execute('SELECT * FROM estoque_itens WHERE nome = ?', (nome,)).fetchone()
-        conn.close() # Fecha a conexão antes de chamar a função auxiliar
+        # conn.close() # Fecha a conexão antes de chamar a função auxiliar
         duplicate_item_data = {
             "type": "produto",
             "item": dict(existing_item)
@@ -1009,9 +1001,8 @@ def novo_item_estoque():
         else:
             flash(f"Erro: Já existe um produto no estoque com o nome '{nome}'.", "error")
             return redirect(url_for('main.listar_estoque'))
-    finally:
-        if conn and not getattr(conn, 'closed', True):
-            conn.close()
+
+
 
     if source_os_id:
         return redirect(url_for('main.detalhe_os', os_id=source_os_id, _anchor='orcamento'))
@@ -1021,7 +1012,7 @@ def novo_item_estoque():
 @main_routes.route('/estoque/<int:item_id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_item_estoque(item_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     item = conn.execute('SELECT * FROM estoque_itens WHERE id = ?', (item_id,)).fetchone()
     if request.method == 'POST':
         nome = request.form['nome']
@@ -1031,7 +1022,7 @@ def editar_item_estoque(item_id):
         conn.execute('UPDATE estoque_itens SET nome = ?, descricao = ?, quantidade = ?, preco_venda = ? WHERE id = ?',
                      (nome, descricao, quantidade, preco_venda, item_id))
         conn.commit()
-        conn.close()
+        # conn.close()
 
         # --- LÓGICA DE REDIRECIONAMENTO ADICIONADA ---
         source_os_id = request.form.get('source_os_id')
@@ -1041,21 +1032,20 @@ def editar_item_estoque(item_id):
 
         return redirect(url_for('main.listar_estoque'))  # Redirecionamento padrão
 
-    conn.close()
+    # conn.close()
     return render_template('editar_item_estoque.html', item=item)
 
 
 @main_routes.route('/estoque/<int:item_id>/excluir', methods=['POST'])
 @login_required
 def excluir_item_estoque(item_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     try:
         conn.execute('DELETE FROM estoque_itens WHERE id = ?', (item_id,))
         conn.commit()
     except sqlite3.IntegrityError:
         pass
-    finally:
-        conn.close()
+
     return redirect(url_for('main.listar_estoque'))
 
 
@@ -1069,11 +1059,11 @@ def add_quantidade_estoque(item_id):
             # Garante que o valor é um número inteiro positivo
             quantidade_adicionada = int(request.form['quantidade_adicionada'])
             if quantidade_adicionada > 0:
-                conn = db.get_db_connection()
+                conn = db.get_db() # <-- CORRIGIDO
                 conn.execute('UPDATE estoque_itens SET quantidade = quantidade + ? WHERE id = ?',
                              (quantidade_adicionada, item_id))
                 conn.commit()
-                conn.close()
+                # conn.close()
         except (ValueError, TypeError):
             # Ignora se o valor não for um número válido
             pass
@@ -1090,11 +1080,11 @@ def editar_info_os(os_id):
         acessorios = request.form['acessorios_entrada']
         problema = request.form['descricao_problema']
 
-        conn = db.get_db_connection()
+        conn = db.get_db() # <-- CORRIGIDO
         conn.execute('UPDATE ordens_servico SET acessorios_entrada = ?, descricao_problema = ? WHERE id = ?',
                      (acessorios, problema, os_id))
         conn.commit()
-        conn.close()
+        # conn.close()
 
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
@@ -1102,7 +1092,7 @@ def editar_info_os(os_id):
 @main_routes.route('/relatorios', methods=['GET', 'POST'])
 @login_required
 def relatorios():
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     dados_relatorio = None
     produtos_retidos = None
 
@@ -1196,7 +1186,7 @@ def relatorios():
 
             dados_relatorio = {"dias_parado": dias_parado}
 
-    conn.close()
+    # conn.close()
 
     return render_template('relatorios.html',
                            relatorio=dados_relatorio,
@@ -1224,11 +1214,11 @@ def shutdown():
 @main_routes.route('/pagamento/<int:pagamento_id>/editar', methods=['POST'])
 @login_required
 def editar_pagamento(pagamento_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     pagamento = conn.execute('SELECT ordem_servico_id FROM pagamentos WHERE id = ?', (pagamento_id,)).fetchone()
     if not pagamento:
         flash("Pagamento não encontrado.", "error")
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.index'))
     os_id = pagamento['ordem_servico_id']
     if request.method == 'POST':
@@ -1241,24 +1231,99 @@ def editar_pagamento(pagamento_id):
         )
         conn.commit()
         flash("Pagamento atualizado com sucesso!", "success")
-    conn.close()
+    # conn.close()
     return redirect(url_for('main.detalhe_os', os_id=os_id))
 
 @main_routes.route('/pagamento/<int:pagamento_id>/excluir', methods=['POST'])
 @login_required
 def excluir_pagamento(pagamento_id):
-    conn = db.get_db_connection()
+    conn = db.get_db() # <-- CORRIGIDO
     pagamento = conn.execute('SELECT ordem_servico_id FROM pagamentos WHERE id = ?', (pagamento_id,)).fetchone()
     if not pagamento:
         flash("Pagamento não encontrado.", "error")
-        conn.close()
+        # conn.close()
         return redirect(url_for('main.index'))
     os_id = pagamento['ordem_servico_id']
     conn.execute('DELETE FROM pagamentos WHERE id = ?', (pagamento_id,))
     conn.commit()
-    conn.close()
+    # conn.close()
     flash("Pagamento excluído com sucesso.", "success")
     return redirect(url_for('main.detalhe_os', os_id=os_id))
+
+# --- Rotas de import e export do banco de dados da aplicação ---
+
+@main_routes.route('/utilitarios/exportar_db')
+@login_required
+@admin_required
+def exportar_db():
+    """Encontra o arquivo do banco de dados e o oferece para download."""
+    try:
+        db_path = current_app.config['DATABASE_PATH']
+        db_directory = os.path.dirname(db_path)
+        db_filename = os.path.basename(db_path)
+
+        # Gera um nome de arquivo com a data atual para o backup
+        backup_filename = f"backup_oficina_{date.today().strftime('%Y_%m_%d')}.db"
+
+        return send_from_directory(db_directory, db_filename, as_attachment=True, download_name=backup_filename)
+    except Exception as e:
+        flash(f"Ocorreu um erro ao exportar o banco de dados: {e}", "error")
+        return redirect(url_for('main.importar_exportar_view'))
+
+
+@main_routes.route('/utilitarios/importar_db', methods=['POST'])
+@login_required
+@admin_required
+def importar_db():
+    """Substitui o banco de dados atual por um arquivo enviado pelo usuário."""
+    if 'db_file' not in request.files:
+        flash("Nenhum arquivo selecionado para importação.", "error")
+        return redirect(url_for('main.importar_exportar_view'))
+
+    file = request.files['db_file']
+
+    if file.filename == '':
+        flash("Nenhum arquivo selecionado para importação.", "error")
+        return redirect(url_for('main.importar_exportar_view'))
+
+    if file and file.filename.endswith('.db'):
+        try:
+            # Caminho para o banco de dados atual e para o arquivo temporário
+            db_path = current_app.config['DATABASE_PATH']
+            temp_path = os.path.join(current_app.instance_path, secure_filename(file.filename))
+
+            # Salva o novo arquivo temporariamente
+            file.save(temp_path)
+
+            # Fecha a conexão atual com o banco de dados, se houver
+            db.close_db()
+
+            # Substitui o arquivo de banco de dados antigo pelo novo
+            shutil.move(temp_path, db_path)
+
+            # AVISA O USUÁRIO PARA REINICIAR MANUALMENTE
+            flash(
+                "Banco de dados importado com sucesso! " ,
+                "success"
+            )
+
+            return redirect(url_for('main.importar_exportar_view'))
+
+        except Exception as e:
+            flash(f"Ocorreu um erro ao importar o banco de dados: {e}", "error")
+            return redirect(url_for('main.importar_exportar_view'))
+
+    else:
+        flash("Arquivo inválido. Por favor, envie um arquivo .db válido.", "error")
+        return redirect(url_for('main.importar_exportar_view'))
+
+
+@main_routes.route('/utilitarios/import-export')
+@login_required
+@admin_required
+def importar_exportar_view():
+    """Renderiza a página de importação e exportação."""
+    return render_template('import_export.html')
 
 
 
