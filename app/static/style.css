@@ -464,15 +464,24 @@ button.action-link--delete:hover { background-color: #fee2e2; color: var(--cor-p
 }
 
 /* 3. Ajusta as células para se comportarem como linhas */
+/* Dentro de @media (max-width: 768px) */
+
+/* Regra para as células de dados normais (permanece igual) */
 .data-table td {
-    display: flex; /* Alinha o rótulo e o dado */
-    justify-content: space-between; /* Coloca o rótulo na esquerda e o dado na direita */
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     padding: 8px 0;
     border: none;
-    text-align: right; /* Alinha o dado do cliente à direita */
+    text-align: right;
 }
 
+/* NOVA REGRA ESPECÍFICA para a célula de fotos */
+.data-table .photo-indicator-cell {
+    display: flex;
+    justify-content: space-between; /* Garante que o rótulo e o ícone se separem */
+    align-items: center;
+}
 /* 4. Adiciona os rótulos (ex: "Nome:") antes de cada dado */
 .data-table td::before {
     content: attr(data-label); /* Pega o texto do atributo 'data-label' */
@@ -632,6 +641,23 @@ main.container > h2,
 .filter-grid select {
     width: 100%;
     box-sizing: border-box;
+}
+
+/* Dentro de @media (max-width: 768px) */
+
+/* Dentro de @media (max-width: 768px) { ... } */
+
+/*
+   CORREÇÃO DEFINITIVA:
+   Força a célula de fotos a se comportar como as outras no modo mobile,
+   anulando os estilos do desktop.
+*/
+.data-table .photo-indicator-cell {
+    width: auto; /* Anula o 'width: 40px' do desktop */
+    text-align: left; /* Anula o 'text-align: center' */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 }

@@ -6,9 +6,10 @@ import signal
 from datetime import date, timedelta
 from functools import wraps
 from threading import Timer
+import uuid
 
 from flask import (Blueprint, render_template, request, url_for, redirect,
-                   make_response, current_app, send_from_directory, flash, json)
+                   make_response, current_app, send_from_directory, flash, json, jsonify)
 from flask_login import login_required, current_user
 from weasyprint import HTML
 from werkzeug.security import generate_password_hash
@@ -491,15 +492,26 @@ def excluir_cliente(cliente_id):
     return redirect(url_for('main.listar_clientes'))
 
 
-# --- ROTAS DE EQUIPAMENTOS (ATUALIZADAS) ---
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos')
 @login_required
 def listar_equipamentos(cliente_id):
-    conn = db.get_db() # <-- CORRIGIDO
+    conn = db.get_db()
     cliente = conn.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,)).fetchone()
     equipamentos = conn.execute('SELECT * FROM equipamentos WHERE cliente_id = ? ORDER BY tipo', (cliente_id,)).fetchall()
-    # conn.close()
-    return render_template('equipamentos.html', cliente=cliente, equipamentos=equipamentos)
+
+    # --- NOVA LÓGICA ADICIONADA AQUI ---
+    # Busca todos os IDs de equipamentos que têm pelo menos uma foto
+    fotos_data = conn.execute('SELECT DISTINCT equipamento_id FROM fotos_equipamentos').fetchall()
+    # Cria um conjunto (set) com esses IDs para uma verificação rápida e eficiente no template
+    equipamentos_com_fotos = {row['equipamento_id'] for row in fotos_data}
+    # --- FIM DA NOVA LÓGICA ---
+
+    return render_template(
+        'equipamentos.html',
+        cliente=cliente,
+        equipamentos=equipamentos,
+        equipamentos_com_fotos=equipamentos_com_fotos  # Passa o novo conjunto para a página
+    )
 
 
 @main_routes.route('/cliente/<int:cliente_id>/equipamentos/novo', methods=['GET', 'POST'])
@@ -534,31 +546,23 @@ def novo_equipamento(cliente_id):
 @main_routes.route('/equipamento/<int:equipamento_id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_equipamento(equipamento_id):
-    conn = db.get_db() # <-- CORRIGIDO
-    # Pega os dados do equipamento e do cliente de uma vez só
+    conn = db.get_db()
     query = "SELECT eq.*, cl.nome as nome_cliente, cl.id as cliente_id FROM equipamentos as eq JOIN clientes as cl ON eq.cliente_id = cl.id WHERE eq.id = ?"
     equipamento = conn.execute(query, (equipamento_id,)).fetchone()
-    # conn.close()
 
     if request.method == 'POST':
-        tipo = request.form['tipo']
-        if tipo == 'Outro':
-            tipo_outro = request.form.get('tipo_outro', '').strip()
-            if tipo_outro:
-                tipo = tipo_outro
-
-        marca = request.form['marca']
-        modelo = request.form['modelo']
-        numero_serie = request.form['numero_serie']
-
-        conn = db.get_db() # <-- CORRIGIDO
+        # ... (sua lógica de salvar as edições do equipamento continua aqui) ...
+        # ... (tipo, marca, modelo, etc.)
         conn.execute('UPDATE equipamentos SET tipo = ?, marca = ?, modelo = ?, numero_serie = ? WHERE id = ?',
-                     (tipo, marca, modelo, numero_serie, equipamento_id))
+                     (request.form['tipo'], request.form['marca'], request.form['modelo'], request.form['numero_serie'], equipamento_id))
         conn.commit()
-        # conn.close()
+        flash('Dados do equipamento atualizados com sucesso!', 'success')
         return redirect(url_for('main.listar_equipamentos', cliente_id=equipamento['cliente_id']))
 
-    return render_template('editar_equipamento.html', equipamento=equipamento)
+    # Busca as fotos associadas a este equipamento
+    fotos = conn.execute('SELECT * FROM fotos_equipamentos WHERE equipamento_id = ? ORDER BY ordem ASC', (equipamento_id,)).fetchall()
+
+    return render_template('editar_equipamento.html', equipamento=equipamento, fotos=fotos) # <-- 'fotos' adicionado aqui
 
 
 @main_routes.route('/equipamento/<int:equipamento_id>/excluir', methods=['POST'])
@@ -1324,6 +1328,102 @@ def importar_db():
 def importar_exportar_view():
     """Renderiza a página de importação e exportação."""
     return render_template('import_export.html')
+
+
+# --- NOVAS ROTAS PARA GERENCIAMENTO DE FOTOS ---
+
+def allowed_file(filename):
+    """Verifica se a extensão do arquivo é permitida."""
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+
+
+@main_routes.route('/uploads/equipamentos/<filename>')
+@login_required
+def servir_foto_equipamento(filename):
+    """Serve (exibe) uma foto de equipamento que foi enviada."""
+    return send_from_directory(current_app.config['UPLOADS_FOLDER'], filename)
+
+
+@main_routes.route('/equipamento/<int:equipamento_id>/adicionar_foto', methods=['POST'])
+@login_required
+def adicionar_foto(equipamento_id):
+    if 'foto' not in request.files:
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('main.editar_equipamento', equipamento_id=equipamento_id))
+
+    file = request.files['foto']
+
+    if file.filename == '':
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('main.editar_equipamento', equipamento_id=equipamento_id))
+
+    if file and allowed_file(file.filename):
+        # Gera um nome de arquivo seguro e único
+        extensao = file.filename.rsplit('.', 1)[1].lower()
+        nome_arquivo_seguro = f"{uuid.uuid4().hex}.{extensao}"
+        caminho_salvar = os.path.join(current_app.config['UPLOADS_FOLDER'], nome_arquivo_seguro)
+
+        file.save(caminho_salvar)
+
+        # Salva a referência no banco de dados
+        conn = db.get_db()
+        conn.execute(
+            'INSERT INTO fotos_equipamentos (equipamento_id, caminho_arquivo) VALUES (?, ?)',
+            (equipamento_id, nome_arquivo_seguro)
+        )
+        conn.commit()
+        flash('Foto adicionada com sucesso!', 'success')
+    else:
+        flash('Tipo de arquivo não permitido.', 'error')
+
+    return redirect(url_for('main.editar_equipamento', equipamento_id=equipamento_id))
+
+
+@main_routes.route('/foto/<int:foto_id>/excluir', methods=['POST'])
+@login_required
+def excluir_foto(foto_id):
+    conn = db.get_db()
+    foto = conn.execute('SELECT * FROM fotos_equipamentos WHERE id = ?', (foto_id,)).fetchone()
+
+    if foto:
+        equipamento_id = foto['equipamento_id']
+        caminho_arquivo = os.path.join(current_app.config['UPLOADS_FOLDER'], foto['caminho_arquivo'])
+
+        # Exclui o registro do banco de dados
+        conn.execute('DELETE FROM fotos_equipamentos WHERE id = ?', (foto_id,))
+        conn.commit()
+
+        # Exclui o arquivo físico do servidor
+        if os.path.exists(caminho_arquivo):
+            os.remove(caminho_arquivo)
+
+        flash('Foto excluída com sucesso.', 'success')
+        return redirect(url_for('main.editar_equipamento', equipamento_id=equipamento_id))
+
+    flash('Foto não encontrada.', 'error')
+    return redirect(request.referrer or url_for('main.index'))
+
+# Em app/routes.py, no final do arquivo
+
+@main_routes.route('/fotos/reordenar', methods=['POST'])
+@login_required
+def reordenar_fotos():
+    """Recebe uma lista de IDs de fotos e atualiza a ordem no banco."""
+    data = request.get_json()
+    if not data or 'ordem_ids' not in data:
+        return jsonify({'success': False, 'message': 'Dados inválidos.'}), 400
+
+    ordem_ids = data['ordem_ids']
+    conn = db.get_db()
+    try:
+        for index, foto_id in enumerate(ordem_ids):
+            conn.execute('UPDATE fotos_equipamentos SET ordem = ? WHERE id = ?', (index, foto_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Ordem das fotos salva com sucesso!'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 

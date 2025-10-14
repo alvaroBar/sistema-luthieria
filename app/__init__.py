@@ -80,6 +80,15 @@ def create_app():
     if not os.path.exists(app.config['RECIBOS_FOLDER']):
         os.makedirs(app.config['RECIBOS_FOLDER'])
 
+    # --- ADICIONE O BLOCO ABAIXO ---
+    # Configuração da pasta de uploads para fotos dos equipamentos
+    uploads_folder = os.path.join(app_data_path, 'uploads', 'equipamentos')
+    app.config['UPLOADS_FOLDER'] = uploads_folder
+    app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+    if not os.path.exists(app.config['UPLOADS_FOLDER']):
+        os.makedirs(app.config['UPLOADS_FOLDER'])
+    # --- FIM DO NOVO BLOCO ---
+
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
